@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { RotateCcw, Calculator, Sliders, Grid, Edit3 } from 'lucide-react';
+import { RotateCcw, Calculator, Sliders, Grid, Edit3, Move } from 'lucide-react';
 import { useVisualizer } from '../../context/VisualizerContext';
 import { Matrix2D, Matrix3D } from '../../types';
 import { SpringAnimator } from '../../utils/animationUtils';
@@ -20,7 +20,6 @@ const MatrixSlider: React.FC<{
   const springAnimator = useRef(new SpringAnimator(value, 0.3, 0.8));
   const animationFrame = useRef<number>();
 
-  // Animate value changes
   useEffect(() => {
     springAnimator.current.setTarget(value);
     
@@ -70,7 +69,6 @@ const MatrixSlider: React.FC<{
     }
   }, [localValue, value]);
 
-  // Update local value when prop changes and not dragging
   useEffect(() => {
     if (!isDragging) {
       setLocalValue(value.toFixed(1));
@@ -89,7 +87,7 @@ const MatrixSlider: React.FC<{
           onFocus={() => setIsHovered(true)}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
-          className={`w-14 px-1 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all duration-200 ${
+          className={`w-16 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 ${
             isHovered ? 'shadow-sm scale-105' : ''
           }`}
           step={step}
@@ -157,10 +155,7 @@ const MatrixPresets: React.FC<{
 
   const handlePresetClick = useCallback(async (preset: any) => {
     setLoadingPreset(preset.name);
-    
-    // Add a small delay to show loading animation
     await new Promise(resolve => setTimeout(resolve, 150));
-    
     onPresetSelect(preset.matrix);
     setLoadingPreset(null);
   }, [onPresetSelect]);
@@ -217,7 +212,6 @@ const MatrixControls: React.FC = () => {
   const [controlMode, setControlMode] = useState<'sliders' | 'inputs'>('sliders');
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Handle matrix entry changes for 2D
   const handleMatrix2DChange = useCallback((row: number, col: number, value: number) => {
     const newMatrix: Matrix2D = [
       [matrix2D[0][0], matrix2D[0][1]],
@@ -227,7 +221,6 @@ const MatrixControls: React.FC = () => {
     setMatrix2D(newMatrix);
   }, [matrix2D, setMatrix2D]);
 
-  // Handle matrix entry changes for 3D
   const handleMatrix3DChange = useCallback((row: number, col: number, value: number) => {
     const newMatrix: Matrix3D = [
       [matrix3D[0][0], matrix3D[0][1], matrix3D[0][2]],
@@ -238,7 +231,6 @@ const MatrixControls: React.FC = () => {
     setMatrix3D(newMatrix);
   }, [matrix3D, setMatrix3D]);
 
-  // Handle preset selection
   const handlePresetSelect = useCallback((matrix: Matrix2D | Matrix3D) => {
     if (mode === '2d') {
       setMatrix2D(matrix as Matrix2D);
@@ -247,7 +239,6 @@ const MatrixControls: React.FC = () => {
     }
   }, [mode, setMatrix2D, setMatrix3D]);
 
-  // Reset to identity matrix
   const handleReset = useCallback(() => {
     if (mode === '2d') {
       setMatrix2D([[1, 0], [0, 1]]);
@@ -257,46 +248,74 @@ const MatrixControls: React.FC = () => {
   }, [mode, setMatrix2D, setMatrix3D]);
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow-lg border border-gray-200 space-y-4">
+    <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-lg border border-gray-100">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-          <Grid className="w-5 h-5 mr-2" />
-          Matrix Controls
-          <span className="ml-2 text-sm font-normal text-gray-500">
-            ({mode === '2d' ? '2×2' : '3×3'})
-          </span>
-        </h3>
-        <div className="flex items-center space-x-2">
+      <div className="p-6 border-b border-gray-100">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold text-gray-800 flex items-center">
+            <Move className="w-6 h-6 mr-2 text-blue-600" />
+            Matrix Controls
+            <span className="ml-2 text-sm font-normal text-gray-500">
+              ({mode === '2d' ? '2×2' : '3×3'})
+            </span>
+          </h2>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setControlMode(controlMode === 'sliders' ? 'inputs' : 'sliders')}
+              className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors duration-200"
+              title={`Switch to ${controlMode === 'sliders' ? 'inputs' : 'sliders'}`}
+            >
+              {controlMode === 'sliders' ? <Edit3 className="w-4 h-4" /> : <Sliders className="w-4 h-4" />}
+            </button>
+            <button
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors duration-200 md:hidden"
+              title={isCollapsed ? 'Expand' : 'Collapse'}
+            >
+              <Grid className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? 'rotate-45' : ''}`} />
+            </button>
+          </div>
+        </div>
+
+        {/* Control Mode Toggle */}
+        <div className="flex space-x-2 bg-gray-100 p-1 rounded-lg">
           <button
-            onClick={() => setControlMode(controlMode === 'sliders' ? 'inputs' : 'sliders')}
-            className="p-1.5 rounded-md bg-gray-100 hover:bg-gray-200 transition-colors duration-200"
-            title={`Switch to ${controlMode === 'sliders' ? 'inputs' : 'sliders'}`}
+            onClick={() => setControlMode('sliders')}
+            className={`flex-1 flex items-center justify-center px-4 py-2 rounded-md transition-all duration-200 ${
+              controlMode === 'sliders'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
           >
-            {controlMode === 'sliders' ? <Edit3 className="w-4 h-4" /> : <Sliders className="w-4 h-4" />}
+            <Sliders className="w-4 h-4 mr-2" />
+            Sliders
           </button>
           <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-1.5 rounded-md bg-gray-100 hover:bg-gray-200 transition-colors duration-200 md:hidden"
-            title={isCollapsed ? 'Expand' : 'Collapse'}
+            onClick={() => setControlMode('inputs')}
+            className={`flex-1 flex items-center justify-center px-4 py-2 rounded-md transition-all duration-200 ${
+              controlMode === 'inputs'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
           >
-            <Grid className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? 'rotate-45' : ''}`} />
+            <Edit3 className="w-4 h-4 mr-2" />
+            Direct Input
           </button>
         </div>
       </div>
 
       {/* Content */}
-      <div className={`space-y-4 transition-all duration-300 ${isCollapsed ? 'max-h-0 overflow-hidden md:max-h-none md:overflow-visible' : 'max-h-none'}`}>
-        {/* Matrix Sliders/Inputs */}
+      <div className={`p-6 space-y-6 transition-all duration-300 ${isCollapsed ? 'max-h-0 overflow-hidden md:max-h-none md:overflow-visible' : 'max-h-none'}`}>
+        {/* Matrix Controls */}
         {controlMode === 'sliders' ? (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <h4 className="text-sm font-medium text-gray-700 flex items-center">
               <Sliders className="w-4 h-4 mr-1" />
               Matrix Entries
             </h4>
             
             {mode === '2d' ? (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 <MatrixSlider
                   label="a₁₁"
                   value={matrix2D[0][0]}
@@ -319,7 +338,7 @@ const MatrixControls: React.FC = () => {
                 />
               </div>
             ) : (
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-3">
                 {Array.from({ length: 9 }, (_, index) => {
                   const row = Math.floor(index / 3);
                   const col = index % 3;
@@ -337,39 +356,47 @@ const MatrixControls: React.FC = () => {
             )}
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <h4 className="text-sm font-medium text-gray-700 flex items-center">
               <Edit3 className="w-4 h-4 mr-1" />
               Matrix Grid
             </h4>
             
             {mode === '2d' ? (
-              <div className="grid grid-cols-2 gap-2 p-3 bg-gray-50 rounded-lg">
+              <div className="grid grid-cols-2 gap-2 p-4 bg-gray-50 rounded-lg">
                 {matrix2D.map((row, rowIndex) =>
                   row.map((value, colIndex) => (
-                    <input
-                      key={`${rowIndex}-${colIndex}`}
-                      type="number"
-                      value={value.toFixed(2)}
-                      onChange={(e) => handleMatrix2DChange(rowIndex, colIndex, parseFloat(e.target.value) || 0)}
-                      className="p-2 border border-gray-300 rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-                      step="0.1"
-                    />
+                    <div key={`${rowIndex}-${colIndex}`} className="relative group">
+                      <input
+                        type="number"
+                        value={value.toFixed(2)}
+                        onChange={(e) => handleMatrix2DChange(rowIndex, colIndex, parseFloat(e.target.value) || 0)}
+                        className="w-full p-2 border border-gray-300 rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 group-hover:border-blue-300"
+                        step="0.1"
+                      />
+                      <span className="absolute -top-2 -left-2 text-xs font-medium text-gray-500 bg-white px-1">
+                        a{rowIndex + 1}{colIndex + 1}
+                      </span>
+                    </div>
                   ))
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-3 gap-1.5 p-3 bg-gray-50 rounded-lg">
+              <div className="grid grid-cols-3 gap-2 p-4 bg-gray-50 rounded-lg">
                 {matrix3D.map((row, rowIndex) =>
                   row.map((value, colIndex) => (
-                    <input
-                      key={`${rowIndex}-${colIndex}`}
-                      type="number"
-                      value={value.toFixed(2)}
-                      onChange={(e) => handleMatrix3DChange(rowIndex, colIndex, parseFloat(e.target.value) || 0)}
-                      className="p-1.5 border border-gray-300 rounded text-center text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-                      step="0.1"
-                    />
+                    <div key={`${rowIndex}-${colIndex}`} className="relative group">
+                      <input
+                        type="number"
+                        value={value.toFixed(2)}
+                        onChange={(e) => handleMatrix3DChange(rowIndex, colIndex, parseFloat(e.target.value) || 0)}
+                        className="w-full p-2 border border-gray-300 rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 group-hover:border-blue-300"
+                        step="0.1"
+                      />
+                      <span className="absolute -top-2 -left-2 text-xs font-medium text-gray-500 bg-white px-1">
+                        a{rowIndex + 1}{colIndex + 1}
+                      </span>
+                    </div>
                   ))
                 )}
               </div>
@@ -380,7 +407,7 @@ const MatrixControls: React.FC = () => {
         {/* Matrix Preview */}
         <div className="space-y-2">
           <h4 className="text-sm font-medium text-gray-700">Matrix Preview</h4>
-          <div className="p-3 bg-gray-50 rounded-lg font-mono text-sm">
+          <div className="p-4 bg-gray-50 rounded-lg font-mono text-sm">
             {mode === '2d' ? (
               <div className="text-center space-y-1">
                 <div>[{matrix2D[0][0].toFixed(2)} {matrix2D[0][1].toFixed(2)}]</div>
@@ -402,7 +429,7 @@ const MatrixControls: React.FC = () => {
         {/* Reset Button */}
         <button
           onClick={handleReset}
-          className="w-full flex items-center justify-center p-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200"
+          className="w-full flex items-center justify-center p-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200"
         >
           <RotateCcw size={16} className="mr-2" />
           Reset to Identity
