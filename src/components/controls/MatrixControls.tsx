@@ -247,21 +247,6 @@ const MatrixControls: React.FC = () => {
     }
   }, [mode, setMatrix2D, setMatrix3D]);
 
-  // Calculate determinant
-  const calculateDeterminant = () => {
-    if (mode === '2d') {
-      return matrix2D[0][0] * matrix2D[1][1] - matrix2D[0][1] * matrix2D[1][0];
-    } else {
-      return (
-        matrix3D[0][0] * (matrix3D[1][1] * matrix3D[2][2] - matrix3D[1][2] * matrix3D[2][1]) -
-        matrix3D[0][1] * (matrix3D[1][0] * matrix3D[2][2] - matrix3D[1][2] * matrix3D[2][0]) +
-        matrix3D[0][2] * (matrix3D[1][0] * matrix3D[2][1] - matrix3D[1][1] * matrix3D[2][0])
-      );
-    }
-  };
-
-  const determinant = calculateDeterminant();
-
   return (
     <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-lg border border-gray-100">
       {/* Header */}
@@ -422,56 +407,19 @@ const MatrixControls: React.FC = () => {
         {/* Matrix Preview */}
         <div className="space-y-2">
           <h4 className="text-sm font-medium text-gray-700">Matrix Preview</h4>
-          <div className="p-4 bg-gray-50 rounded-lg">
-            <div className="flex items-center justify-between mb-4">
-              <div className="text-sm font-medium text-gray-700">Current Matrix</div>
-              <div className="text-sm">
-                <span className="text-gray-500">det = </span>
-                <span className={determinant >= 0 ? 'text-green-600' : 'text-red-600'}>
-                  {determinant.toFixed(2)}
-                </span>
+          <div className="p-4 bg-gray-50 rounded-lg font-mono text-sm">
+            {mode === '2d' ? (
+              <div className="text-center space-y-1">
+                <div>[{matrix2D[0][0].toFixed(2)} {matrix2D[0][1].toFixed(2)}]</div>
+                <div>[{matrix2D[1][0].toFixed(2)} {matrix2D[1][1].toFixed(2)}]</div>
               </div>
-            </div>
-            <div className="relative">
-              <div className="absolute -left-3 top-1/2 transform -translate-y-1/2 text-2xl text-gray-400">[</div>
-              <div className="absolute -right-3 top-1/2 transform -translate-y-1/2 text-2xl text-gray-400">]</div>
-              <div className="px-4">
-                {mode === '2d' ? (
-                  <div className="grid grid-cols-2 gap-2 font-mono">
-                    {matrix2D.map((row, i) => (
-                      <div key={i} className="flex justify-around">
-                        {row.map((value, j) => (
-                          <div
-                            key={j}
-                            className="w-16 text-center py-1 font-medium text-gray-700"
-                          >
-                            {value.toFixed(2)}
-                          </div>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-3 gap-2 font-mono">
-                    {matrix3D.map((row, i) => (
-                      <div key={i} className="flex justify-around">
-                        {row.map((value, j) => (
-                          <div
-                            key={j}
-                            className="w-16 text-center py-1 font-medium text-gray-700"
-                          >
-                            {value.toFixed(2)}
-                          </div>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-                )}
+            ) : (
+              <div className="text-center space-y-1">
+                <div>[{matrix3D[0][0].toFixed(2)} {matrix3D[0][1].toFixed(2)} {matrix3D[0][2].toFixed(2)}]</div>
+                <div>[{matrix3D[1][0].toFixed(2)} {matrix3D[1][1].toFixed(2)} {matrix3D[1][2].toFixed(2)}]</div>
+                <div>[{matrix3D[2][0].toFixed(2)} {matrix3D[2][1].toFixed(2)} {matrix3D[2][2].toFixed(2)}]</div>
               </div>
-            </div>
-            <div className="mt-2 text-xs text-gray-500 text-center">
-              {determinant > 1 ? 'Expansion' : determinant < 1 && determinant > 0 ? 'Compression' : determinant < 0 ? 'Reflection' : 'Singular'}
-            </div>
+            )}
           </div>
         </div>
 
