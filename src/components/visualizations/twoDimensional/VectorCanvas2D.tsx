@@ -18,7 +18,7 @@ const VectorCanvas2D: React.FC<VectorCanvas2DProps> = ({ width, height }) => {
     changeBasis,
     changeBasisInverse
   } = useVisualizer();
-  const [activeVectorIndex, setActiveVectorIndex] = useState<number | null>(null);
+  const [activeVectorIndex] = useState<number | null>(null);
   
   const margin = { top: 20, right: 20, bottom: 30, left: 40 };
   const innerWidth = width - margin.left - margin.right;
@@ -170,6 +170,29 @@ const VectorCanvas2D: React.FC<VectorCanvas2DProps> = ({ width, height }) => {
           .attr('y2', innerHeight)
           .attr('stroke', '#333')
           .attr('stroke-width', 2);
+
+        // Add axis labels
+        if (settings.showLabels) {
+          // X-axis label
+          svg.append('text')
+            .attr('x', innerWidth - 10)
+            .attr('y', yScale(0) - 5)
+            .attr('text-anchor', 'end')
+            .attr('font-size', '14px')
+            .attr('font-weight', '600')
+            .attr('fill', '#333')
+            .text('x');
+          
+          // Y-axis label
+          svg.append('text')
+            .attr('x', xScale(0) + 5)
+            .attr('y', 15)
+            .attr('text-anchor', 'start')
+            .attr('font-size', '14px')
+            .attr('font-weight', '600')
+            .attr('fill', '#333')
+            .text('y');
+        }
       } else {
         // Custom basis axes
         const origin = { x: 0, y: 0 };
@@ -245,13 +268,12 @@ const VectorCanvas2D: React.FC<VectorCanvas2DProps> = ({ width, height }) => {
     // Create drag behavior with touch support
     const drag = d3.drag<SVGLineElement, Vector2D>()
       .touchable(true)
-      .on('start', function(event) {
+      .on('start', function() {
         const group = d3.select(this.parentNode as SVGGElement);
         group.raise();
       })
       .on('drag', function(event) {
         const group = d3.select(this.parentNode as SVGGElement);
-        const index = parseInt(group.attr('data-index'));
         
         const newX = xScale.invert(event.x);
         const newY = yScale.invert(event.y);
@@ -265,10 +287,12 @@ const VectorCanvas2D: React.FC<VectorCanvas2DProps> = ({ width, height }) => {
           changeBasis({ x: newX, y: newY }) : 
           { x: newX, y: newY };
 
-        group.select('text')
-          .attr('x', event.x + 10)
-          .attr('y', event.y - 10)
-          .text(`v${index + 1}(${coords.x.toFixed(1)}, ${coords.y.toFixed(1)})`);
+        // Update modern coordinate label
+        group.select('foreignObject')
+          .attr('x', event.x + 8)
+          .attr('y', event.y - 16)
+          .select('div')
+          .html(`${coords.x.toFixed(1)}, ${coords.y.toFixed(1)}`);
       })
       .on('end', function(event) {
         const group = d3.select(this.parentNode as SVGGElement);
@@ -329,13 +353,25 @@ const VectorCanvas2D: React.FC<VectorCanvas2DProps> = ({ width, height }) => {
           changeBasis(vector) : 
           vector;
 
-        vectorGroup.append('text')
-          .attr('x', x2 + 10)
-          .attr('y', y2 - 10)
-          .attr('fill', color)
-          .attr('font-weight', 'bold')
-          .attr('text-anchor', x2 > x1 ? 'start' : 'end')
-          .text(`v${i + 1}(${coords.x.toFixed(1)}, ${coords.y.toFixed(1)})`);
+        // Modern minimalistic coordinate label
+        vectorGroup.append('foreignObject')
+          .attr('x', x2 + 8)
+          .attr('y', y2 - 16)
+          .attr('width', 90)
+          .attr('height', 20)
+          .append('xhtml:div')
+          .attr('style', `
+            background: transparent;
+            padding: 2px 6px;
+            font-size: 12px;
+            font-weight: 600;
+            color: ${color};
+            text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
+            display: inline-block;
+            white-space: nowrap;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+          `)
+          .html(`${coords.x.toFixed(1)}, ${coords.y.toFixed(1)}`);
       }
     });
     

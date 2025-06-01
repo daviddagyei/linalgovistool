@@ -40,10 +40,22 @@ const EigenvalueCanvas2D: React.FC<EigenvalueCanvas2DProps> = ({ width, height }
   
   useEffect(() => {
     if (!svgRef.current) return;
-    
-    // Clear previous content
     d3.select(svgRef.current).selectAll('*').remove();
-    
+
+    // --- D3 Zoom Setup ---
+    const svg = d3.select(svgRef.current)
+      .attr('width', width)
+      .attr('height', height);
+    // Main group for zoom/pan
+    const g = svg.append('g').attr('class', 'main-group').attr('transform', `translate(${margin.left}, ${margin.top})`);
+
+    const zoom = d3.zoom<SVGSVGElement, unknown>()
+      .scaleExtent([0.5, 8])
+      .on('zoom', (event) => {
+        g.attr('transform', `translate(${margin.left}, ${margin.top})` + event.transform);
+      });
+    svg.call(zoom as any);
+
     // Calculate eigenvalues and eigenvectors
     const eigenvalues = calculateEigenvalues2D(matrix2D);
     
@@ -77,19 +89,14 @@ const EigenvalueCanvas2D: React.FC<EigenvalueCanvas2DProps> = ({ width, height }
       .domain([-maxCoord, maxCoord])
       .range([innerHeight, 0]);
     
-    // Create SVG container
-    const svg = d3.select(svgRef.current)
-      .attr('width', width)
-      .attr('height', height)
-      .append('g')
-      .attr('transform', `translate(${margin.left}, ${margin.top})`);
+    // Use the zoom-enabled main group (g) for all drawing operations
     
     // Draw grid if enabled
     if (settings.showGrid) {
       const gridStep = Math.ceil(maxCoord / 5);
       const gridLines = d3.range(-maxCoord, maxCoord + gridStep, gridStep);
       
-      svg.append('g')
+      g.append('g')
         .selectAll('line')
         .data(gridLines)
         .enter()
@@ -101,7 +108,7 @@ const EigenvalueCanvas2D: React.FC<EigenvalueCanvas2DProps> = ({ width, height }
         .attr('stroke', '#e0e0e0')
         .attr('stroke-width', 0.5);
       
-      svg.append('g')
+      g.append('g')
         .selectAll('line')
         .data(gridLines)
         .enter()
@@ -117,7 +124,7 @@ const EigenvalueCanvas2D: React.FC<EigenvalueCanvas2DProps> = ({ width, height }
     // Draw axes if enabled
     if (settings.showAxes) {
       // X-axis
-      svg.append('line')
+      g.append('line')
         .attr('x1', 0)
         .attr('y1', yScale(0))
         .attr('x2', innerWidth)
@@ -126,7 +133,7 @@ const EigenvalueCanvas2D: React.FC<EigenvalueCanvas2DProps> = ({ width, height }
         .attr('stroke-width', 2);
       
       // Y-axis
-      svg.append('line')
+      g.append('line')
         .attr('x1', xScale(0))
         .attr('y1', 0)
         .attr('x2', xScale(0))
@@ -138,7 +145,7 @@ const EigenvalueCanvas2D: React.FC<EigenvalueCanvas2DProps> = ({ width, height }
     // Draw test vectors (before transformation)
     if (eigenvalueSettings?.showTransformation) {
       testVectors.forEach((vector, index) => {
-        svg.append('line')
+        g.append('line')
           .attr('x1', xScale(0))
           .attr('y1', yScale(0))
           .attr('x2', xScale(vector.x))
@@ -148,18 +155,27 @@ const EigenvalueCanvas2D: React.FC<EigenvalueCanvas2DProps> = ({ width, height }
           .attr('opacity', 0.6)
           .attr('stroke-dasharray', '5,5');
         
-        // Arrow head for test vectors
-        svg.append('circle')
+        g.append('circle')
           .attr('cx', xScale(vector.x))
           .attr('cy', yScale(vector.y))
           .attr('r', 4)
           .attr('fill', getTestVectorColor(index))
           .attr('opacity', 0.6);
+        
+        // Modern coordinate label for test vector
+        g.append('foreignObject')
+          .attr('x', xScale(vector.x) + 8)
+          .attr('y', yScale(vector.y) - 18)
+          .attr('width', 60)
+          .attr('height', 24)
+          .append('xhtml:div')
+          .attr('style', 'background:rgba(255,255,255,0.85);border-radius:12px;padding:2px 8px;font-size:12px;color:#333;box-shadow:0 1px 4px #0001;display:inline-block;')
+          .html(`(${vector.x.toFixed(2)}, ${vector.y.toFixed(2)})`);
       });
       
       // Draw transformed vectors
       transformedVectors.forEach((vector, index) => {
-        svg.append('line')
+        g.append('line')
           .attr('x1', xScale(0))
           .attr('y1', yScale(0))
           .attr('x2', xScale(vector.x))
@@ -167,12 +183,21 @@ const EigenvalueCanvas2D: React.FC<EigenvalueCanvas2DProps> = ({ width, height }
           .attr('stroke', getTestVectorColor(index))
           .attr('stroke-width', 3);
         
-        // Arrow head for transformed vectors
-        svg.append('circle')
+        g.append('circle')
           .attr('cx', xScale(vector.x))
           .attr('cy', yScale(vector.y))
           .attr('r', 5)
           .attr('fill', getTestVectorColor(index));
+        
+        // Modern coordinate label for transformed vector
+        g.append('foreignObject')
+          .attr('x', xScale(vector.x) + 8)
+          .attr('y', yScale(vector.y) - 18)
+          .attr('width', 60)
+          .attr('height', 24)
+          .append('xhtml:div')
+          .attr('style', 'background:rgba(59,130,246,0.12);border-radius:12px;padding:2px 8px;font-size:12px;color:#2563eb;box-shadow:0 1px 4px #0001;display:inline-block;')
+          .html(`(${vector.x.toFixed(2)}, ${vector.y.toFixed(2)})`);
       });
     }
     
@@ -181,12 +206,11 @@ const EigenvalueCanvas2D: React.FC<EigenvalueCanvas2DProps> = ({ width, height }
       eigenvalues.forEach((eigenvalue, index) => {
         const eigenvector = eigenvalue.vector as Vector2D;
         const scaledVector = {
-          x: eigenvector.x * 3, // Scale for visibility
+          x: eigenvector.x * 3,
           y: eigenvector.y * 3
         };
         
-        // Draw eigenvector line extending in both directions
-        svg.append('line')
+        g.append('line')
           .attr('x1', xScale(-scaledVector.x))
           .attr('y1', yScale(-scaledVector.y))
           .attr('x2', xScale(scaledVector.x))
@@ -195,25 +219,34 @@ const EigenvalueCanvas2D: React.FC<EigenvalueCanvas2DProps> = ({ width, height }
           .attr('stroke-width', 4)
           .attr('opacity', 0.8);
         
-        // Add arrow markers
-        svg.append('circle')
+        g.append('circle')
           .attr('cx', xScale(scaledVector.x))
           .attr('cy', yScale(scaledVector.y))
           .attr('r', 6)
           .attr('fill', getEigenvalueColor(index));
         
-        svg.append('circle')
+        g.append('circle')
           .attr('cx', xScale(-scaledVector.x))
           .attr('cy', yScale(-scaledVector.y))
           .attr('r', 6)
           .attr('fill', getEigenvalueColor(index));
+        
+        // Modern coordinate label for eigenvector tip
+        g.append('foreignObject')
+          .attr('x', xScale(scaledVector.x) + 8)
+          .attr('y', yScale(scaledVector.y) - 18)
+          .attr('width', 70)
+          .attr('height', 24)
+          .append('xhtml:div')
+          .attr('style', `background:rgba(255,255,255,0.95);border-radius:12px;padding:2px 10px;font-size:13px;color:${getEigenvalueColor(index)};font-weight:600;box-shadow:0 1px 4px #0002;display:inline-block;`)
+          .html(`λ${index + 1}: (${scaledVector.x.toFixed(2)}, ${scaledVector.y.toFixed(2)})`);
       });
     }
     
     // Add labels if enabled
     if (settings.showLabels) {
       // Origin label
-      svg.append('text')
+      g.append('text')
         .attr('x', xScale(0) + 10)
         .attr('y', yScale(0) - 10)
         .attr('fill', '#666')
@@ -229,7 +262,7 @@ const EigenvalueCanvas2D: React.FC<EigenvalueCanvas2DProps> = ({ width, height }
             y: eigenvector.y * 3
           };
           
-          svg.append('text')
+          g.append('text')
             .attr('x', xScale(scaledVector.x) + 10)
             .attr('y', yScale(scaledVector.y) - 10)
             .attr('fill', getEigenvalueColor(index))
@@ -240,7 +273,7 @@ const EigenvalueCanvas2D: React.FC<EigenvalueCanvas2DProps> = ({ width, height }
       }
     }
     
-    // Draw legend
+    // Draw legend (keep outside zoom group)
     const legend = svg.append('g')
       .attr('class', 'legend')
       .attr('transform', `translate(${legendPosition.x}, ${legendPosition.y})`);

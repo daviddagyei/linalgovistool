@@ -132,6 +132,29 @@ const MatrixTransformationCanvas2D: React.FC<MatrixTransformationCanvas2DProps> 
         .attr('y2', yScale(maxCoord))
         .attr('stroke', originalColor)
         .attr('stroke-width', 2);
+
+      // Add original axis labels
+      if (settings.showLabels) {
+        // X-axis label
+        svg.append('text')
+          .attr('x', xScale(maxCoord) - 10)
+          .attr('y', yScale(0) - 5)
+          .attr('text-anchor', 'end')
+          .attr('font-size', '14px')
+          .attr('font-weight', '600')
+          .attr('fill', originalColor)
+          .text('x');
+        
+        // Y-axis label
+        svg.append('text')
+          .attr('x', xScale(0) + 5)
+          .attr('y', yScale(maxCoord) + 15)
+          .attr('text-anchor', 'start')
+          .attr('font-size', '14px')
+          .attr('font-weight', '600')
+          .attr('fill', originalColor)
+          .text('y');
+      }
       
       // Transformed axes
       const transformedXAxis = [
@@ -163,6 +186,29 @@ const MatrixTransformationCanvas2D: React.FC<MatrixTransformationCanvas2DProps> 
         .attr('stroke', transformedColor)
         .attr('stroke-width', 2)
         .attr('stroke-dasharray', '5,5');
+
+      // Add transformed axis labels
+      if (settings.showLabels) {
+        // Transformed X-axis label
+        svg.append('text')
+          .attr('x', xScale(transformedXAxis[1].x) + 5)
+          .attr('y', yScale(transformedXAxis[1].y) - 5)
+          .attr('text-anchor', 'start')
+          .attr('font-size', '14px')
+          .attr('font-weight', '600')
+          .attr('fill', transformedColor)
+          .text("x'");
+        
+        // Transformed Y-axis label
+        svg.append('text')
+          .attr('x', xScale(transformedYAxis[1].x) + 5)
+          .attr('y', yScale(transformedYAxis[1].y) + 5)
+          .attr('text-anchor', 'start')
+          .attr('font-size', '14px')
+          .attr('font-weight', '600')
+          .attr('fill', transformedColor)
+          .text("y'");
+      }
     }
     
     // Draw basis vectors
