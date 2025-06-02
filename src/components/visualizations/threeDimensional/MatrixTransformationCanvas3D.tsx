@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Grid, Line } from '@react-three/drei';
+import { OrbitControls, Grid, Line, Text } from '@react-three/drei';
 import { Vector3, Quaternion } from 'three';
 import * as THREE from 'three';
 import { useVisualizer } from '../../../context/VisualizerContext';
@@ -78,13 +78,15 @@ const VectorArrow: React.FC<{
       
       {/* Label */}
       {label && (
-        <group position={end.clone().multiplyScalar(1.1)}>
-          <mesh>
-            <planeGeometry args={[0.5, 0.2]} />
-            <meshBasicMaterial color="white" opacity={0.8} transparent />
-          </mesh>
-          {/* Note: Text rendering in three.js requires additional setup */}
-        </group>
+        <Text
+          position={end.clone().add(direction.multiplyScalar(0.3))}
+          fontSize={0.15}
+          color={color}
+          anchorX="left"
+          anchorY="middle"
+        >
+          {label}
+        </Text>
       )}
     </group>
   );
@@ -179,9 +181,29 @@ const DraggableLegend: React.FC<{
   matrix: Matrix3D;
   determinant: number;
 }> = ({ matrix, determinant }) => {
-  const [position, setPosition] = useState({ x: 16, y: 16 });
+  const [position, setPosition] = useState({ 
+    x: window.innerWidth - 290, // Position from right edge (legend width + margin)
+    y: 16 // Keep at top
+  });
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+  // Handle responsive positioning on window resize
+  React.useEffect(() => {
+    const updatePosition = () => {
+      if (!isDragging) { // Only update if not being dragged
+        setPosition(prev => ({
+          x: Math.max(16, window.innerWidth - 290), // Ensure minimum margin from left
+          y: prev.y // Keep current y position
+        }));
+      }
+    };
+
+    window.addEventListener('resize', updatePosition);
+    updatePosition(); // Call once on mount
+
+    return () => window.removeEventListener('resize', updatePosition);
+  }, [isDragging]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
@@ -375,10 +397,39 @@ const MatrixTransformationCanvas3D: React.FC<MatrixTransformationCanvas3DProps> 
         {/* Grid and axes */}
         {settings.showGrid && (
           <>
+            {/* XY plane (ground) */}
             <Grid
               args={[20, 20]}
               position={[0, 0, 0]}
               rotation={[-Math.PI/2, 0, 0]}
+              cellSize={1}
+              cellThickness={0.5}
+              cellColor="#a0a0a0"
+              sectionSize={5}
+              sectionThickness={1}
+              sectionColor="#808080"
+              fadeDistance={30}
+              fadeStrength={1}
+            />
+            {/* XZ plane (vertical) */}
+            <Grid
+              args={[20, 20]}
+              position={[0, 0, 0]}
+              rotation={[0, 0, 0]}
+              cellSize={1}
+              cellThickness={0.5}
+              cellColor="#a0a0a0"
+              sectionSize={5}
+              sectionThickness={1}
+              sectionColor="#808080"
+              fadeDistance={30}
+              fadeStrength={1}
+            />
+            {/* YZ plane (side) */}
+            <Grid
+              args={[20, 20]}
+              position={[0, 0, 0]}
+              rotation={[0, Math.PI/2, 0]}
               cellSize={1}
               cellThickness={0.5}
               cellColor="#a0a0a0"

@@ -205,9 +205,29 @@ const DraggableLegend: React.FC<{
   selectedIndices: boolean[];
   isIndependent: boolean;
 }> = ({ vectors, selectedIndices, isIndependent }) => {
-  const [position, setPosition] = useState({ x: 16, y: 16 });
+  const [position, setPosition] = useState({ 
+    x: window.innerWidth - 310, // Position from right edge (legend width + margin)
+    y: 16 // Keep at top
+  });
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+  // Handle responsive positioning on window resize
+  React.useEffect(() => {
+    const updatePosition = () => {
+      if (!isDragging) { // Only update if not being dragged
+        setPosition(prev => ({
+          x: Math.max(16, window.innerWidth - 310), // Ensure minimum margin from left
+          y: prev.y // Keep current y position
+        }));
+      }
+    };
+
+    window.addEventListener('resize', updatePosition);
+    updatePosition(); // Call once on mount
+
+    return () => window.removeEventListener('resize', updatePosition);
+  }, [isDragging]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
