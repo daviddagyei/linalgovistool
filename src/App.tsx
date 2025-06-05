@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from './components/common/Header';
 import Footer from './components/common/Footer';
 import ControlPanel from './components/controls/ControlPanel';
@@ -118,17 +118,24 @@ const CanvasControls: React.FC<{
 const AppContent: React.FC = () => {
   const { mode, tool } = useVisualizer();
   const { width, height } = useResponsiveCanvasSize();
-  const [isGrabbing, setIsGrabbing] = useState(false);
+  // Only for 2D vector/basis tool:
   const [scale, setScale] = useState(1);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+
   // Determine which visualization component to render based on mode and tool
   const renderVisualization = () => {
     if (mode === '2d') {
       if (tool === 'vector' || tool === 'basis') {
-        return <VectorCanvas2D width={width} height={height} />;
+        return (
+          <VectorCanvas2D
+            width={width}
+            height={height}
+            scale={scale}
+            offset={offset}
+            onPanChange={setOffset}
+            onScaleChange={setScale}
+          />
+        );
       }
       if (tool === 'matrix') {
         return <MatrixTransformationCanvas2D width={width} height={height} />;
@@ -155,150 +162,32 @@ const AppContent: React.FC = () => {
     }
   };
 
-  const handleGrab = () => {
-    console.log('Grab button clicked, current isGrabbing:', isGrabbing);
-    setIsGrabbing(!isGrabbing);
-  };
-
-  const handleMouseDown = useCallback((e: MouseEvent) => {
-    console.log('Mouse down on canvas, isGrabbing:', isGrabbing);
-    if (!isGrabbing) return;
-    e.preventDefault();
-    setIsDragging(true);
-    setDragStart({ 
-      x: e.clientX - position.x * scale, 
-      y: e.clientY - position.y * scale 
-    });
-  }, [isGrabbing, position, scale]);
-
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isDragging || !isGrabbing) return;
-    e.preventDefault();
-    const newX = (e.clientX - dragStart.x) / scale;
-    const newY = (e.clientY - dragStart.y) / scale;
-    setPosition({ x: newX, y: newY });
-  }, [isDragging, isGrabbing, dragStart, scale]);
-
-  const handleMouseUp = useCallback(() => {
-    if (isDragging) {
-      console.log('Mouse up, stopping drag');
-    }
-    setIsDragging(false);
-  }, [isDragging]);
-
-  const handleZoomIn = () => {
-    console.log('Zoom in clicked, current scale:', scale);
-    setScale(prev => {
-      const newScale = Math.min(prev * 1.2, 3);
-      console.log('New scale:', newScale);
-      return newScale;
-    });
-  };
-
-  const handleZoomOut = () => {
-    console.log('Zoom out clicked, current scale:', scale);
-    setScale(prev => {
-      const newScale = Math.max(prev / 1.2, 0.5);
-      console.log('New scale:', newScale);
-      return newScale;
-    });
-  };
-
-  const handleReset = () => {
-    console.log('Reset clicked');
-    setScale(1);
-    setPosition({ x: 0, y: 0 });
-    setIsDragging(false);
-    
-    // Only reset grabbing if currently active
-    if (isGrabbing) {
-      setIsGrabbing(false);
-    }
-    
-    const canvas = document.querySelector('.visualization-area');
-    if (canvas) {
-      canvas.classList.remove('cursor-grab', 'cursor-grabbing');
-    }
-  };
-
-  useEffect(() => {
-    const canvas = document.querySelector('.visualization-area') as HTMLElement;
-    if (!canvas) return;
-
-    const mouseDownHandler = (e: MouseEvent) => {
-      handleMouseDown(e);
-    };
-
-    const mouseMoveHandler = (e: MouseEvent) => {
-      handleMouseMove(e);
-    };
-
-    const mouseUpHandler = () => {
-      handleMouseUp();
-    };
-
-    // Add event listeners
-    canvas.addEventListener('mousedown', mouseDownHandler as EventListener);
-    document.addEventListener('mousemove', mouseMoveHandler as EventListener);
-    document.addEventListener('mouseup', mouseUpHandler);
-    document.addEventListener('mouseleave', mouseUpHandler);
-
-    return () => {
-      canvas.removeEventListener('mousedown', mouseDownHandler as EventListener);
-      document.removeEventListener('mousemove', mouseMoveHandler as EventListener);
-      document.removeEventListener('mouseup', mouseUpHandler);
-      document.removeEventListener('mouseleave', mouseUpHandler);
-    };
-  }, [handleMouseDown, handleMouseMove, handleMouseUp]);
-
-  // Update cursor styles based on grabbing state
-  useEffect(() => {
-    const canvas = document.querySelector('.visualization-area');
-    if (canvas) {
-      canvas.classList.remove('cursor-grab', 'cursor-grabbing');
-      if (isGrabbing) {
-        if (isDragging) {
-          canvas.classList.add('cursor-grabbing');
-        } else {
-          canvas.classList.add('cursor-grab');
-        }
-      }
-    }
-  }, [isGrabbing, isDragging]);
+  // Zoom/pan controls only affect 2D vector/basis canvas
+  const handleZoomIn = () => setScale(s => s * 1.2);
+  const handleZoomOut = () => setScale(s => s / 1.2);
+  const handleReset = () => { setScale(1); setOffset({ x: 0, y: 0 }); };
 
   return (
     <div className="flex flex-col h-screen bg-gray-100">
       <Header />
-      
       <main className="flex-1 flex flex-col items-center justify-center p-4 relative">
         <div className="w-full max-w-[1600px] flex flex-col items-center relative">
-          {/* Static Canvas Controls - positioned outside the transformed area */}
           <CanvasControls
-            onGrab={handleGrab}
+            onGrab={() => {}}
             onZoomIn={handleZoomIn}
             onZoomOut={handleZoomOut}
             onReset={handleReset}
-            isGrabbing={isGrabbing}
+            isGrabbing={false}
           />
-          
-          {/* Visualization area */}
-          <div 
-            className="relative w-full flex items-center justify-center visualization-area"
-            style={{
-              transform: `scale(${scale}) translate(${position.x}px, ${position.y}px)`,
-              transition: isDragging ? 'none' : 'transform 0.2s ease-out'
-            }}
-          >
+          {/* Visualization area (no transform here) */}
+          <div className="relative w-full flex items-center justify-center visualization-area">
             {renderVisualization()}
           </div>
-          
-          {/* Fixed control panel at bottom */}
           <div className="fixed bottom-0 left-0 right-0 z-50">
             <ControlPanel />
           </div>
         </div>
       </main>
-      
       <Footer />
     </div>
   );

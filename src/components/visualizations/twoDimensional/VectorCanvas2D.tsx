@@ -6,13 +6,16 @@ import { useVisualizer } from '../../../context/VisualizerContext';
 interface VectorCanvas2DProps {
   width: number;
   height: number;
+  scale: number;
+  offset: { x: number; y: number };
+  onPanChange: (offset: { x: number; y: number }) => void;
+  onScaleChange: (scale: number) => void;
 }
 
-const VectorCanvas2D: React.FC<VectorCanvas2DProps> = ({ width, height }) => {
+const VectorCanvas2D: React.FC<VectorCanvas2DProps> = ({ width, height, scale, offset, onPanChange, onScaleChange }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const { 
     vectors2D, 
-    setVectors2D, 
     settings,
     basisSettings,
     changeBasis,
@@ -28,201 +31,116 @@ const VectorCanvas2D: React.FC<VectorCanvas2DProps> = ({ width, height }) => {
   const vectorColors = ['#3366FF', '#FF6633', '#33CC99', '#9966FF', '#FF9933'];
   const basisColors = ['#22C55E', '#EC4899']; // Green and Pink for basis vectors
   
+  // --- D3 Drawing ---
   useEffect(() => {
     if (!svgRef.current) return;
-    
-    // Clear previous content
     d3.select(svgRef.current).selectAll('*').remove();
-    
-    // Set up scales
-    const maxRange = Math.max(
-      ...vectors2D.map(v => Math.abs(v.x)),
-      ...vectors2D.map(v => Math.abs(v.y)),
-      ...basisSettings.basisVectors.map(v => Math.abs(v.x)),
-      ...basisSettings.basisVectors.map(v => Math.abs(v.y)),
-      5 // Minimum range
-    );
-    
-    const xScale = d3.scaleLinear()
-      .domain([-maxRange, maxRange])
-      .range([0, innerWidth]);
-    
-    const yScale = d3.scaleLinear()
-      .domain([-maxRange, maxRange])
-      .range([innerHeight, 0]);
-    
-    // Create the main SVG container
+
+    // Calculate visible range based on scale and offset
+    const baseRange = 10; // World units visible at scale=1
+    const visibleRange = baseRange / scale;
+    const centerX = offset.x;
+    const centerY = offset.y;
+    const xDomain = [centerX - visibleRange, centerX + visibleRange];
+    const yDomain = [centerY - visibleRange, centerY + visibleRange];
+
+    const xScale = d3.scaleLinear().domain(xDomain).range([0, innerWidth]);
+    const yScale = d3.scaleLinear().domain(yDomain).range([innerHeight, 0]);
+
     const svg = d3.select(svgRef.current)
       .attr('width', width)
       .attr('height', height)
       .append('g')
-      .attr('transform', `translate(${margin.left}, ${margin.top})`);
-    
-    // Draw grid if enabled
+      .attr('transform', `translate(${margin.left},${margin.top})`);
+
+    // Draw grid
     if (settings.showGrid) {
-      const gridStep = Math.ceil(maxRange / 5);
-      const gridLines = Array.from(
-        { length: 2 * maxRange / gridStep + 1 },
-        (_, i) => -maxRange + i * gridStep
-      );
-      
-      // Draw standard grid
-      if (!basisSettings.customBasis) {
-        // Vertical grid lines
-        svg.selectAll('.grid-vertical')
-          .data(gridLines)
-          .enter()
-          .append('line')
-          .attr('class', 'grid-vertical')
-          .attr('x1', d => xScale(d))
+      // Calculate nice grid step
+      const targetSteps = 10;
+      const rawStep = (visibleRange * 2) / targetSteps;
+      const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
+      const normalized = rawStep / magnitude;
+      let step;
+      if (normalized <= 1) step = 1;
+      else if (normalized <= 2) step = 2;
+      else if (normalized <= 5) step = 5;
+      else step = 10;
+      step *= magnitude;
+      // X grid lines
+      const xStart = Math.ceil(xDomain[0] / step) * step;
+      for (let x = xStart; x < xDomain[1]; x += step) {
+        svg.append('line')
+          .attr('x1', xScale(x))
           .attr('y1', 0)
-          .attr('x2', d => xScale(d))
+          .attr('x2', xScale(x))
           .attr('y2', innerHeight)
-          .attr('stroke', '#e0e0e0')
-          .attr('stroke-width', 1)
-          .attr('stroke-dasharray', '3,3');
-        
-        // Horizontal grid lines
-        svg.selectAll('.grid-horizontal')
-          .data(gridLines)
-          .enter()
-          .append('line')
-          .attr('class', 'grid-horizontal')
-          .attr('x1', 0)
-          .attr('y1', d => yScale(d))
-          .attr('x2', innerWidth)
-          .attr('y2', d => yScale(d))
-          .attr('stroke', '#e0e0e0')
-          .attr('stroke-width', 1)
-          .attr('stroke-dasharray', '3,3');
-      } else {
-        // Draw transformed grid for custom basis
-        const gridPoints = [];
-        for (let i = -maxRange; i <= maxRange; i += gridStep) {
-          for (let j = -maxRange; j <= maxRange; j += gridStep) {
-            const transformed = changeBasisInverse({ x: i, y: j });
-            gridPoints.push(transformed);
-          }
-        }
-
-        // Draw vertical grid lines in custom basis
-        for (let i = -maxRange; i <= maxRange; i += gridStep) {
-          const points = [];
-          for (let j = -maxRange; j <= maxRange; j += gridStep) {
-            const transformed = changeBasisInverse({ x: i, y: j });
-            points.push(transformed);
-          }
-          
-          svg.append('path')
-            .datum(points)
-            .attr('d', d3.line<Vector2D>()
-              .x(d => xScale(d.x))
-              .y(d => yScale(d.y))
-            )
-            .attr('stroke', '#e0e0e0')
-            .attr('stroke-width', 1)
-            .attr('stroke-dasharray', '3,3')
-            .attr('fill', 'none');
-        }
-
-        // Draw horizontal grid lines in custom basis
-        for (let j = -maxRange; j <= maxRange; j += gridStep) {
-          const points = [];
-          for (let i = -maxRange; i <= maxRange; i += gridStep) {
-            const transformed = changeBasisInverse({ x: i, y: j });
-            points.push(transformed);
-          }
-          
-          svg.append('path')
-            .datum(points)
-            .attr('d', d3.line<Vector2D>()
-              .x(d => xScale(d.x))
-              .y(d => yScale(d.y))
-            )
-            .attr('stroke', '#e0e0e0')
-            .attr('stroke-width', 1)
-            .attr('stroke-dasharray', '3,3')
-            .attr('fill', 'none');
-        }
+          .attr('stroke', '#e0e0e0');
       }
+      // Y grid lines
+      const yStart = Math.ceil(yDomain[0] / step) * step;
+      for (let y = yStart; y < yDomain[1]; y += step) {
+        svg.append('line')
+          .attr('x1', 0)
+          .attr('y1', yScale(y))
+          .attr('x2', innerWidth)
+          .attr('y2', yScale(y))
+          .attr('stroke', '#e0e0e0');
+      }
+    }
+
+    // Draw axes
+    svg.append('line')
+      .attr('x1', xScale(xDomain[0]))
+      .attr('y1', yScale(0))
+      .attr('x2', xScale(xDomain[1]))
+      .attr('y2', yScale(0))
+      .attr('stroke', '#333')
+      .attr('stroke-width', 2);
+    svg.append('line')
+      .attr('x1', xScale(0))
+      .attr('y1', yScale(yDomain[0]))
+      .attr('x2', xScale(0))
+      .attr('y2', yScale(yDomain[1]))
+      .attr('stroke', '#333')
+      .attr('stroke-width', 2);
+
+    // Draw axis ticks and numbers
+    const tickStep = (visibleRange * 2) / 10;
+    // X ticks
+    for (let x = Math.ceil(xDomain[0] / tickStep) * tickStep; x < xDomain[1]; x += tickStep) {
+      if (Math.abs(x) < 1e-8) continue; // skip zero
+      svg.append('line')
+        .attr('x1', xScale(x))
+        .attr('y1', yScale(0) - 5)
+        .attr('x2', xScale(x))
+        .attr('y2', yScale(0) + 5)
+        .attr('stroke', '#333');
+      svg.append('text')
+        .attr('x', xScale(x))
+        .attr('y', yScale(0) + 18)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', '12px')
+        .attr('fill', '#333')
+        .text(Number(x.toFixed(2)));
+    }
+    // Y ticks
+    for (let y = Math.ceil(yDomain[0] / tickStep) * tickStep; y < yDomain[1]; y += tickStep) {
+      if (Math.abs(y) < 1e-8) continue;
+      svg.append('line')
+        .attr('x1', xScale(0) - 5)
+        .attr('y1', yScale(y))
+        .attr('x2', xScale(0) + 5)
+        .attr('y2', yScale(y))
+        .attr('stroke', '#333');
+      svg.append('text')
+        .attr('x', xScale(0) - 8)
+        .attr('y', yScale(y) + 4)
+        .attr('text-anchor', 'end')
+        .attr('font-size', '12px')
+        .attr('fill', '#333')
+        .text(Number(y.toFixed(2)));
     }
     
-    // Draw axes if enabled
-    if (settings.showAxes) {
-      if (!basisSettings.customBasis) {
-        // Standard axes
-        // X-axis
-        svg.append('line')
-          .attr('class', 'axis')
-          .attr('x1', 0)
-          .attr('y1', yScale(0))
-          .attr('x2', innerWidth)
-          .attr('y2', yScale(0))
-          .attr('stroke', '#333')
-          .attr('stroke-width', 2);
-        
-        // Y-axis
-        svg.append('line')
-          .attr('class', 'axis')
-          .attr('x1', xScale(0))
-          .attr('y1', 0)
-          .attr('x2', xScale(0))
-          .attr('y2', innerHeight)
-          .attr('stroke', '#333')
-          .attr('stroke-width', 2);
-
-        // Add axis labels
-        if (settings.showLabels) {
-          // X-axis label
-          svg.append('text')
-            .attr('x', innerWidth - 10)
-            .attr('y', yScale(0) - 5)
-            .attr('text-anchor', 'end')
-            .attr('font-size', '14px')
-            .attr('font-weight', '600')
-            .attr('fill', '#333')
-            .text('x');
-          
-          // Y-axis label
-          svg.append('text')
-            .attr('x', xScale(0) + 5)
-            .attr('y', 15)
-            .attr('text-anchor', 'start')
-            .attr('font-size', '14px')
-            .attr('font-weight', '600')
-            .attr('fill', '#333')
-            .text('y');
-        }
-      } else {
-        // Custom basis axes
-        const origin = { x: 0, y: 0 };
-        const xAxisEnd = changeBasisInverse({ x: maxRange, y: 0 });
-        const yAxisEnd = changeBasisInverse({ x: 0, y: maxRange });
-
-        // X-axis in custom basis
-        svg.append('line')
-          .attr('class', 'custom-axis-x')
-          .attr('x1', xScale(origin.x))
-          .attr('y1', yScale(origin.y))
-          .attr('x2', xScale(xAxisEnd.x))
-          .attr('y2', yScale(xAxisEnd.y))
-          .attr('stroke', basisColors[0])
-          .attr('stroke-width', 2)
-          .attr('stroke-dasharray', '5,5');
-
-        // Y-axis in custom basis
-        svg.append('line')
-          .attr('class', 'custom-axis-y')
-          .attr('x1', xScale(origin.x))
-          .attr('y1', yScale(origin.y))
-          .attr('x2', xScale(yAxisEnd.x))
-          .attr('y2', yScale(yAxisEnd.y))
-          .attr('stroke', basisColors[1])
-          .attr('stroke-width', 2)
-          .attr('stroke-dasharray', '5,5');
-      }
-    }
-
     // Draw basis vectors
     if (basisSettings.customBasis) {
       basisSettings.basisVectors.forEach((vector, i) => {
@@ -376,10 +294,41 @@ const VectorCanvas2D: React.FC<VectorCanvas2DProps> = ({ width, height }) => {
       }
     });
     
-  }, [vectors2D, width, height, margin, settings, activeVectorIndex, basisSettings]);
+  }, [vectors2D, width, height, margin, settings, activeVectorIndex, basisSettings, scale, offset]);
   
+  // Mouse wheel for zoom
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+    onScaleChange(Math.max(0.0001, scale * zoomFactor));
+  };
+
+  // Mouse drag for pan
+  let last = useRef<{ x: number; y: number } | null>(null);
+  const handleMouseDown = (e: React.MouseEvent) => {
+    last.current = { x: e.clientX, y: e.clientY };
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!last.current) return;
+    const dx = (e.clientX - last.current.x) / (scale * 40); // 40 px per world unit
+    const dy = (e.clientY - last.current.y) / (scale * 40);
+    onPanChange({ x: offset.x - dx, y: offset.y + dy });
+    last.current = { x: e.clientX, y: e.clientY };
+  };
+  const handleMouseUp = () => {
+    window.removeEventListener('mousemove', handleMouseMove);
+    window.removeEventListener('mouseup', handleMouseUp);
+    last.current = null;
+  };
+
   return (
-    <div className="vector-canvas-2d bg-white rounded-lg shadow-lg">
+    <div className="vector-canvas-2d bg-white rounded-lg shadow-lg select-none"
+      style={{ width, height }}
+      onWheel={handleWheel}
+      onMouseDown={handleMouseDown}
+    >
       <svg ref={svgRef} className="w-full h-full" style={{ touchAction: 'none' }}></svg>
     </div>
   );
