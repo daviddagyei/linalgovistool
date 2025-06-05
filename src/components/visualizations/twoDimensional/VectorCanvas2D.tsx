@@ -287,12 +287,12 @@ const VectorCanvas2D: React.FC<VectorCanvas2DProps> = ({ width, height }) => {
           changeBasis({ x: newX, y: newY }) : 
           { x: newX, y: newY };
 
-        // Update modern coordinate label
+        // Update vector label
         group.select('foreignObject')
           .attr('x', event.x + 8)
           .attr('y', event.y - 16)
           .select('div')
-          .html(`${coords.x.toFixed(1)}, ${coords.y.toFixed(1)}`);
+          .html(`v${parseInt(group.attr('data-index')) + 1} (${coords.x.toFixed(1)}, ${coords.y.toFixed(1)})`);
       })
       .on('end', function(event) {
         const group = d3.select(this.parentNode as SVGGElement);
@@ -353,25 +353,26 @@ const VectorCanvas2D: React.FC<VectorCanvas2DProps> = ({ width, height }) => {
           changeBasis(vector) : 
           vector;
 
-        // Modern minimalistic coordinate label
+        // Vector label with new format
         vectorGroup.append('foreignObject')
           .attr('x', x2 + 8)
           .attr('y', y2 - 16)
-          .attr('width', 90)
-          .attr('height', 20)
+          .attr('width', 120)
+          .attr('height', 24)
           .append('xhtml:div')
           .attr('style', `
-            background: transparent;
+            background: rgba(255, 255, 255, 0.9);
             padding: 2px 6px;
             font-size: 12px;
             font-weight: 600;
             color: ${color};
-            text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
+            border-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
             display: inline-block;
             white-space: nowrap;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
           `)
-          .html(`${coords.x.toFixed(1)}, ${coords.y.toFixed(1)}`);
+          .html(`v${i + 1} (${coords.x.toFixed(1)}, ${coords.y.toFixed(1)})`);
       }
     });
     
