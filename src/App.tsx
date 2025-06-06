@@ -11,7 +11,7 @@ import SubspaceCanvas3D from './components/visualizations/threeDimensional/Subsp
 import EigenvalueCanvas2D from './components/visualizations/twoDimensional/EigenvalueCanvas2D';
 import EigenvalueCanvas3D from './components/visualizations/threeDimensional/EigenvalueCanvas3D';
 import { VisualizerProvider, useVisualizer } from './context/VisualizerContext';
-import { Move, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 
 // Hook for responsive canvas dimensions
 const useResponsiveCanvasSize = () => {
@@ -50,30 +50,12 @@ const useResponsiveCanvasSize = () => {
 
 // Canvas Controls Component
 const CanvasControls: React.FC<{
-  onGrab: () => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
   onReset: () => void;
-  isGrabbing: boolean;
-}> = ({ onGrab, onZoomIn, onZoomOut, onReset, isGrabbing }) => {
+}> = ({ onZoomIn, onZoomOut, onReset }) => {
   return (
     <div className="absolute top-4 right-4 flex space-x-2 z-10">
-      <button
-        onClick={(e) => {
-          console.log('Grab button clicked!');
-          e.preventDefault();
-          e.stopPropagation();
-          onGrab();
-        }}
-        className={`p-2 rounded-lg transition-colors ${
-          isGrabbing
-            ? 'bg-blue-100 text-blue-700 border-2 border-blue-300'
-            : 'bg-white text-gray-700 hover:bg-gray-100 border-2 border-gray-300'
-        } shadow-lg`}
-        title="Grab and move canvas"
-      >
-        <Move size={20} />
-      </button>
       <button
         onClick={(e) => {
           console.log('Zoom in button clicked!');
@@ -118,9 +100,123 @@ const CanvasControls: React.FC<{
 const AppContent: React.FC = () => {
   const { mode, tool } = useVisualizer();
   const { width, height } = useResponsiveCanvasSize();
-  // Only for 2D vector/basis tool:
+  // For all 2D tools that support zoom/pan:
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
+
+  // --- Pinch, wheel+ctrl zoom, and pan logic ---
+  const visAreaRef = React.useRef<HTMLDivElement>(null);
+  const pinchState = React.useRef<{ initialDist: number | null; initialScale: number }>({ initialDist: null, initialScale: 1 });
+  const panState = React.useRef<{ startX: number; startY: number; startOffset: { x: number; y: number }; isPanning: boolean }>({ startX: 0, startY: 0, startOffset: { x: 0, y: 0 }, isPanning: false });
+
+  useEffect(() => {
+    const visArea = visAreaRef.current;
+    if (!visArea) return;
+    // --- Pinch zoom ---
+    function getTouchDist(e: TouchEvent) {
+      if (e.touches.length < 2) return 0;
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+    function onTouchStart(e: TouchEvent) {
+      if (e.touches.length === 2) {
+        pinchState.current.initialDist = getTouchDist(e);
+        pinchState.current.initialScale = scale;
+        e.preventDefault();
+      } else if (e.touches.length === 1) {
+        // Start pan
+        panState.current.isPanning = true;
+        panState.current.startX = e.touches[0].clientX;
+        panState.current.startY = e.touches[0].clientY;
+        panState.current.startOffset = { ...offset };
+        e.preventDefault();
+      }
+    }
+    function onTouchMove(e: TouchEvent) {
+      if (e.touches.length === 2 && pinchState.current.initialDist) {
+        const newDist = getTouchDist(e);
+        const scaleFactor = newDist / pinchState.current.initialDist;
+        setScale(Math.max(0.1, Math.min(10, pinchState.current.initialScale * scaleFactor)));
+        e.preventDefault();
+      } else if (e.touches.length === 1 && panState.current.isPanning) {
+        // Pan
+        const dx = e.touches[0].clientX - panState.current.startX;
+        const dy = e.touches[0].clientY - panState.current.startY;
+        // Convert px to world units
+        const baseRange = 10;
+        const visibleRange = baseRange / scale;
+        const worldPerPx = (visibleRange * 2) / width;
+        setOffset({
+          x: panState.current.startOffset.x - dx * worldPerPx,
+          y: panState.current.startOffset.y + dy * worldPerPx
+        });
+        e.preventDefault();
+      }
+    }
+    function onTouchEnd(e: TouchEvent) {
+      if (e.touches.length < 2) {
+        pinchState.current.initialDist = null;
+      }
+      if (e.touches.length === 0) {
+        panState.current.isPanning = false;
+      }
+    }
+    visArea.addEventListener('touchstart', onTouchStart, { passive: false });
+    visArea.addEventListener('touchmove', onTouchMove, { passive: false });
+    visArea.addEventListener('touchend', onTouchEnd, { passive: false });
+    // --- Mouse pan ---
+    function onMouseDown(e: MouseEvent) {
+      if (e.button !== 0) return;
+      panState.current.isPanning = true;
+      panState.current.startX = e.clientX;
+      panState.current.startY = e.clientY;
+      panState.current.startOffset = { ...offset };
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', onMouseUp);
+      e.preventDefault();
+    }
+    function onMouseMove(e: MouseEvent) {
+      if (!panState.current.isPanning) return;
+      const dx = e.clientX - panState.current.startX;
+      const dy = e.clientY - panState.current.startY;
+      const baseRange = 10;
+      const visibleRange = baseRange / scale;
+      const worldPerPx = (visibleRange * 2) / width;
+      setOffset({
+        x: panState.current.startOffset.x - dx * worldPerPx,
+        y: panState.current.startOffset.y + dy * worldPerPx
+      });
+    }
+    function onMouseUp() {
+      panState.current.isPanning = false;
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    }
+    visArea.addEventListener('mousedown', onMouseDown);
+    // --- Wheel+ctrl zoom (desktop) ---
+    function onWheel(e: WheelEvent) {
+      if (e.ctrlKey) {
+        e.preventDefault();
+        setScale(s => {
+          let next = s * (e.deltaY < 0 ? 1.1 : 0.9);
+          next = Math.max(0.1, Math.min(10, next));
+          return next;
+        });
+      }
+    }
+    visArea.addEventListener('wheel', onWheel, { passive: false });
+    return () => {
+      visArea.removeEventListener('touchstart', onTouchStart);
+      visArea.removeEventListener('touchmove', onTouchMove);
+      visArea.removeEventListener('touchend', onTouchEnd);
+      visArea.removeEventListener('mousedown', onMouseDown);
+      visArea.removeEventListener('wheel', onWheel);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+  }, [scale, offset, width]);
+  // --- End gesture logic ---
 
   // Determine which visualization component to render based on mode and tool
   const renderVisualization = () => {
@@ -138,10 +234,19 @@ const AppContent: React.FC = () => {
         );
       }
       if (tool === 'matrix') {
-        return <MatrixTransformationCanvas2D width={width} height={height} />;
+        return (
+          <MatrixTransformationCanvas2D
+            width={width}
+            height={height}
+            scale={scale}
+            offset={offset}
+            onPanChange={setOffset}
+            onScaleChange={setScale}
+          />
+        );
       }
       if (tool === 'subspace') {
-        return <SubspaceCanvas2D width={width} height={height} />;
+        return <SubspaceCanvas2D width={width} height={height} scale={scale} offset={offset} onPanChange={setOffset} onScaleChange={setScale} />;
       }
       if (tool === 'eigenvalue') {
         return <EigenvalueCanvas2D width={width} height={height} />;
@@ -162,7 +267,8 @@ const AppContent: React.FC = () => {
     }
   };
 
-  // Zoom/pan controls only affect 2D vector/basis canvas
+  // Zoom/pan controls only affect 2D tools that support zoom
+  const showCanvasControls = mode === '2d' && (tool === 'vector' || tool === 'basis' || tool === 'matrix' || tool === 'subspace');
   const handleZoomIn = () => setScale(s => s * 1.2);
   const handleZoomOut = () => setScale(s => s / 1.2);
   const handleReset = () => { setScale(1); setOffset({ x: 0, y: 0 }); };
@@ -172,15 +278,19 @@ const AppContent: React.FC = () => {
       <Header />
       <main className="flex-1 flex flex-col items-center justify-center p-4 relative">
         <div className="w-full max-w-[1600px] flex flex-col items-center relative">
-          <CanvasControls
-            onGrab={() => {}}
-            onZoomIn={handleZoomIn}
-            onZoomOut={handleZoomOut}
-            onReset={handleReset}
-            isGrabbing={false}
-          />
+          {showCanvasControls && (
+            <CanvasControls
+              onZoomIn={handleZoomIn}
+              onZoomOut={handleZoomOut}
+              onReset={handleReset}
+            />
+          )}
           {/* Visualization area (no transform here) */}
-          <div className="relative w-full flex items-center justify-center visualization-area">
+          <div
+            ref={visAreaRef}
+            className="relative w-full flex items-center justify-center visualization-area"
+            style={{ touchAction: 'none' }}
+          >
             {renderVisualization()}
           </div>
           <div className="fixed bottom-0 left-0 right-0 z-50">

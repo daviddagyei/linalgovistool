@@ -3,13 +3,18 @@ import * as d3 from 'd3';
 import { useVisualizer } from '../../../context/VisualizerContext';
 import { Vector2D } from '../../../types';
 import { magnitude2D } from '../../../utils/mathUtils';
+import { getNiceTickStep } from '../../../utils/niceTicks';
 
 interface SubspaceCanvas2DProps {
   width: number;
   height: number;
+  scale: number;
+  offset: { x: number; y: number };
+  onPanChange: (offset: { x: number; y: number }) => void;
+  onScaleChange: (scale: number) => void;
 }
 
-const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({ width, height }) => {
+const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({ width, height, scale, offset, onPanChange, onScaleChange }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const { 
     vectors2D, 
@@ -95,19 +100,20 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({ width, height }) =>
       ...vectors2D.flatMap(v => calculateSpan([v]))
     ];
     
-    const maxRange = Math.max(
-      ...allPoints.map(v => Math.abs(v.x)),
-      ...allPoints.map(v => Math.abs(v.y)),
-      5 // Minimum range
-    );
+    const baseRange = 10;
+    const visibleRange = baseRange / scale;
+    const centerX = offset.x;
+    const centerY = offset.y;
+    const xDomain = [centerX - visibleRange, centerX + visibleRange];
+    const yDomain = [centerY - visibleRange, centerY + visibleRange];
     
     // Set up scales
     const xScale = d3.scaleLinear()
-      .domain([-maxRange, maxRange])
+      .domain(xDomain)
       .range([0, innerWidth]);
     
     const yScale = d3.scaleLinear()
-      .domain([-maxRange, maxRange])
+      .domain(yDomain)
       .range([innerHeight, 0]);
     
     // Create SVG container
@@ -119,8 +125,8 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({ width, height }) =>
     
     // Draw grid if enabled
     if (settings.showGrid) {
-      const gridStep = Math.ceil(maxRange / 5);
-      const gridLines = d3.range(-maxRange, maxRange + gridStep, gridStep);
+      const gridStep = getNiceTickStep(baseRange * 2, 10);
+      const gridLines = d3.range(-baseRange, baseRange + gridStep, gridStep);
       
       svg.append('g')
         .selectAll('line')
@@ -176,7 +182,7 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({ width, height }) =>
         if (spanPoints.length > 0) {
           // Draw the span as a line for 1D subspace
           const validPoints = spanPoints.filter(p => 
-            Math.abs(p.x) <= maxRange && Math.abs(p.y) <= maxRange
+            Math.abs(p.x) <= visibleRange && Math.abs(p.y) <= visibleRange
           );
           
           if (validPoints.length > 1) {
@@ -204,7 +210,7 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({ width, height }) =>
     if (subspaceSettings.showPlane && vectors2D.length >= 2) {
       const spanPoints = calculateSpan(vectors2D.slice(0, 2));
       const validPoints = spanPoints.filter(p => 
-        Math.abs(p.x) <= maxRange && Math.abs(p.y) <= maxRange
+        Math.abs(p.x) <= visibleRange && Math.abs(p.y) <= visibleRange
       );
       
       if (validPoints.length > 0) {
@@ -381,7 +387,7 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({ width, height }) =>
       }
     });
     
-  }, [vectors2D, width, height, settings, subspaceSettings, basisSettings, activeVectorIndex, legendPosition]);
+  }, [vectors2D, width, height, settings, subspaceSettings, basisSettings, activeVectorIndex, legendPosition, scale, offset]);
   
   return (
     <div className="subspace-canvas-2d bg-white rounded-lg shadow-lg">

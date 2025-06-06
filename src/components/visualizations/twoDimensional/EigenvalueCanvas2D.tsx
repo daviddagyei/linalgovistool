@@ -3,6 +3,7 @@ import * as d3 from 'd3';
 import { useVisualizer } from '../../../context/VisualizerContext';
 import { Vector2D } from '../../../types';
 import { calculateEigenvalues2D, applyMatrix2D } from '../../../utils/mathUtils';
+import { getNiceTickStep } from '../../../utils/niceTicks';
 
 // Centralized color functions for consistency
 const getEigenvalueColor = (index: number): string => {
@@ -93,7 +94,7 @@ const EigenvalueCanvas2D: React.FC<EigenvalueCanvas2DProps> = ({ width, height }
     
     // Draw grid if enabled
     if (settings.showGrid) {
-      const gridStep = Math.ceil(maxCoord / 5);
+      const gridStep = getNiceTickStep(maxCoord * 2, 10);
       const gridLines = d3.range(-maxCoord, maxCoord + gridStep, gridStep);
       
       g.append('g')

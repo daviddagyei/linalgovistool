@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import { Vector2D } from '../../../types';
 import { useVisualizer } from '../../../context/VisualizerContext';
+import { getNiceTickStep } from '../../../utils/niceTicks';
 
 interface VectorCanvas2DProps {
   width: number;
@@ -16,10 +17,10 @@ const VectorCanvas2D: React.FC<VectorCanvas2DProps> = ({ width, height, scale, o
   const svgRef = useRef<SVGSVGElement>(null);
   const { 
     vectors2D, 
+    setVectors2D, 
     settings,
     basisSettings,
-    changeBasis,
-    changeBasisInverse
+    changeBasis
   } = useVisualizer();
   const [activeVectorIndex] = useState<number | null>(null);
   
@@ -56,19 +57,10 @@ const VectorCanvas2D: React.FC<VectorCanvas2DProps> = ({ width, height, scale, o
     // Draw grid
     if (settings.showGrid) {
       // Calculate nice grid step
-      const targetSteps = 10;
-      const rawStep = (visibleRange * 2) / targetSteps;
-      const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
-      const normalized = rawStep / magnitude;
-      let step;
-      if (normalized <= 1) step = 1;
-      else if (normalized <= 2) step = 2;
-      else if (normalized <= 5) step = 5;
-      else step = 10;
-      step *= magnitude;
+      const gridStep = getNiceTickStep(visibleRange * 2, 10);
       // X grid lines
-      const xStart = Math.ceil(xDomain[0] / step) * step;
-      for (let x = xStart; x < xDomain[1]; x += step) {
+      const xStart = Math.ceil(xDomain[0] / gridStep) * gridStep;
+      for (let x = xStart; x < xDomain[1]; x += gridStep) {
         svg.append('line')
           .attr('x1', xScale(x))
           .attr('y1', 0)
@@ -77,8 +69,8 @@ const VectorCanvas2D: React.FC<VectorCanvas2DProps> = ({ width, height, scale, o
           .attr('stroke', '#e0e0e0');
       }
       // Y grid lines
-      const yStart = Math.ceil(yDomain[0] / step) * step;
-      for (let y = yStart; y < yDomain[1]; y += step) {
+      const yStart = Math.ceil(yDomain[0] / gridStep) * gridStep;
+      for (let y = yStart; y < yDomain[1]; y += gridStep) {
         svg.append('line')
           .attr('x1', 0)
           .attr('y1', yScale(y))
@@ -105,7 +97,7 @@ const VectorCanvas2D: React.FC<VectorCanvas2DProps> = ({ width, height, scale, o
       .attr('stroke-width', 2);
 
     // Draw axis ticks and numbers
-    const tickStep = (visibleRange * 2) / 10;
+    const tickStep = getNiceTickStep(visibleRange * 2, 10);
     // X ticks
     for (let x = Math.ceil(xDomain[0] / tickStep) * tickStep; x < xDomain[1]; x += tickStep) {
       if (Math.abs(x) < 1e-8) continue; // skip zero
@@ -121,7 +113,7 @@ const VectorCanvas2D: React.FC<VectorCanvas2DProps> = ({ width, height, scale, o
         .attr('text-anchor', 'middle')
         .attr('font-size', '12px')
         .attr('fill', '#333')
-        .text(Number(x.toFixed(2)));
+        .text(Number(x.toPrecision(6)));
     }
     // Y ticks
     for (let y = Math.ceil(yDomain[0] / tickStep) * tickStep; y < yDomain[1]; y += tickStep) {
@@ -138,7 +130,7 @@ const VectorCanvas2D: React.FC<VectorCanvas2DProps> = ({ width, height, scale, o
         .attr('text-anchor', 'end')
         .attr('font-size', '12px')
         .attr('fill', '#333')
-        .text(Number(y.toFixed(2)));
+        .text(Number(y.toPrecision(6)));
     }
     
     // Draw basis vectors
@@ -299,35 +291,59 @@ const VectorCanvas2D: React.FC<VectorCanvas2DProps> = ({ width, height, scale, o
   // --- Canvas-local pan/zoom handlers ---
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef<{ x: number; y: number; offset: { x: number; y: number } } | null>(null);
+  const PAN_SPEED = 10; // Further increase for much faster panning
 
-  // Pinch-to-zoom state
+  // Pinch-to-zoom state with threshold detection
   const pinchState = useRef<{
     initialDistance: number;
     initialScale: number;
     initialOffset: { x: number; y: number };
     initialMid: { x: number; y: number };
+    startTime: number;
+    isActive: boolean;
   } | null>(null);
 
-  // Prevent browser pinch-zoom and double-tap zoom on canvas
+  // Thresholds for detecting intentional canvas pinch
+  const PINCH_THRESHOLD = 15; // pixels of distance change
+  const TIME_THRESHOLD = 150; // milliseconds to wait
+
+  // Selective gesture prevention - prevent all gestures on canvas to avoid browser zoom
   useEffect(() => {
     const div = document.getElementById('vector-canvas-2d-container');
     if (!div) return;
-    // For iOS Safari
-    const preventDefault = (e: Event) => e.preventDefault();
-    div.addEventListener('gesturestart', preventDefault);
-    div.addEventListener('gesturechange', preventDefault);
-    div.addEventListener('gestureend', preventDefault);
+    
+    const handleGestureStart = (e: Event) => {
+      // Prevent all gesture events on canvas
+      e.preventDefault();
+    };
+    
+    const handleGestureChange = (e: Event) => {
+      // Prevent all gesture events on canvas
+      e.preventDefault();
+    };
+    
+    const handleGestureEnd = (e: Event) => {
+      // Prevent all gesture events on canvas
+      e.preventDefault();
+    };
+    
+    div.addEventListener('gesturestart', handleGestureStart);
+    div.addEventListener('gesturechange', handleGestureChange);
+    div.addEventListener('gestureend', handleGestureEnd);
+    
     return () => {
-      div.removeEventListener('gesturestart', preventDefault);
-      div.removeEventListener('gesturechange', preventDefault);
-      div.removeEventListener('gestureend', preventDefault);
+      div.removeEventListener('gesturestart', handleGestureStart);
+      div.removeEventListener('gesturechange', handleGestureChange);
+      div.removeEventListener('gestureend', handleGestureEnd);
     };
   }, []);
 
-  // Pinch-to-zoom touch handlers
+  // Touch handlers with threshold-based pinch detection
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 2) {
+      // Prevent browser zoom immediately when 2 fingers touch canvas
       e.preventDefault();
+      
       const rect = (e.target as Element).getBoundingClientRect();
       const t1 = e.touches[0];
       const t2 = e.touches[1];
@@ -336,42 +352,65 @@ const VectorCanvas2D: React.FC<VectorCanvas2DProps> = ({ width, height, scale, o
       const distance = Math.sqrt(dx * dx + dy * dy);
       const midX = (t1.clientX + t2.clientX) / 2 - rect.left - margin.left;
       const midY = (t1.clientY + t2.clientY) / 2 - rect.top - margin.top;
+      
       pinchState.current = {
         initialDistance: distance,
         initialScale: scale,
         initialOffset: { ...offset },
         initialMid: { x: midX, y: midY },
+        startTime: Date.now(),
+        isActive: false, // Not active until we detect intentional movement
       };
+    } else if (e.touches.length === 1) {
+      // Allow single finger touches (for dragging)
+      // Don't prevent default to allow normal touch behavior
     }
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (e.touches.length === 2 && pinchState.current) {
+      // Always prevent default to stop browser zoom
       e.preventDefault();
+      
       const rect = (e.target as Element).getBoundingClientRect();
       const t1 = e.touches[0];
       const t2 = e.touches[1];
       const dx = t2.clientX - t1.clientX;
       const dy = t2.clientY - t1.clientY;
       const distance = Math.sqrt(dx * dx + dy * dy);
-      const scaleFactor = distance / pinchState.current.initialDistance;
-      const newScale = Math.max(0.0001, pinchState.current.initialScale * scaleFactor);
-      // Zoom to midpoint
-      const midX = (t1.clientX + t2.clientX) / 2 - rect.left - margin.left;
-      const midY = (t1.clientY + t2.clientY) / 2 - rect.top - margin.top;
-      const svgX = (midX / innerWidth) * (2 * 10 / scale) + offset.x - 10 / scale;
-      const svgY = (1 - midY / innerHeight) * (2 * 10 / scale) + offset.y - 10 / scale;
-      const newOffset = {
-        x: svgX - (svgX - offset.x) * (scale / newScale),
-        y: svgY - (svgY - offset.y) * (scale / newScale),
-      };
-      onScaleChange(newScale);
-      onPanChange(newOffset);
+      
+      const distanceChange = Math.abs(distance - pinchState.current.initialDistance);
+      const timeElapsed = Date.now() - pinchState.current.startTime;
+      
+      // Activate canvas pinch mode if movement exceeds threshold OR time threshold passed
+      if (!pinchState.current.isActive && 
+          (distanceChange > PINCH_THRESHOLD || timeElapsed > TIME_THRESHOLD)) {
+        pinchState.current.isActive = true;
+      }
+      
+      // Only do custom zoom if we're in active canvas pinch mode
+      if (pinchState.current.isActive) {
+        const scaleFactor = distance / pinchState.current.initialDistance;
+        const newScale = Math.max(0.0001, pinchState.current.initialScale * scaleFactor);
+        
+        // Zoom to midpoint
+        const midX = (t1.clientX + t2.clientX) / 2 - rect.left - margin.left;
+        const midY = (t1.clientY + t2.clientY) / 2 - rect.top - margin.top;
+        const svgX = (midX / innerWidth) * (2 * 10 / scale) + offset.x - 10 / scale;
+        const svgY = (1 - midY / innerHeight) * (2 * 10 / scale) + offset.y - 10 / scale;
+        const newOffset = {
+          x: svgX - (svgX - offset.x) * (scale / newScale),
+          y: svgY - (svgY - offset.y) * (scale / newScale),
+        };
+        onScaleChange(newScale);
+        onPanChange(newOffset);
+      }
     }
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (e.touches.length < 2) {
+      // Reset pinch state when lifting fingers
       pinchState.current = null;
     }
   };
@@ -403,8 +442,8 @@ const VectorCanvas2D: React.FC<VectorCanvas2DProps> = ({ width, height, scale, o
   };
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!dragging || !dragStart.current) return;
-    const dx = (e.clientX - dragStart.current.x) / (innerWidth) * (2 * 10 / scale);
-    const dy = (e.clientY - dragStart.current.y) / (innerHeight) * (2 * 10 / scale);
+    const dx = (e.clientX - dragStart.current.x) / (innerWidth) * (2 * 10 / scale) * PAN_SPEED;
+    const dy = (e.clientY - dragStart.current.y) / (innerHeight) * (2 * 10 / scale) * PAN_SPEED;
     onPanChange({ x: dragStart.current.offset.x - dx, y: dragStart.current.offset.y + dy });
   };
   const handleMouseUp = () => {
@@ -416,7 +455,12 @@ const VectorCanvas2D: React.FC<VectorCanvas2DProps> = ({ width, height, scale, o
     <div
       id="vector-canvas-2d-container"
       className="vector-canvas-2d bg-white rounded-lg shadow-lg select-none"
-      style={{ width, height, cursor: dragging ? 'grabbing' : 'grab', touchAction: 'none' }}
+      style={{ 
+        width, 
+        height, 
+        cursor: dragging ? 'grabbing' : 'grab', 
+        touchAction: 'pan-x pan-y' // Allow scrolling but prevent browser zoom
+      }}
       onWheel={handleWheel}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
@@ -426,7 +470,7 @@ const VectorCanvas2D: React.FC<VectorCanvas2DProps> = ({ width, height, scale, o
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      <svg ref={svgRef} className="w-full h-full" style={{ touchAction: 'none' }}></svg>
+      <svg ref={svgRef} className="w-full h-full" style={{ touchAction: 'inherit' }}></svg>
     </div>
   );
 };
