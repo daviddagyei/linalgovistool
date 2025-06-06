@@ -63,7 +63,7 @@ const CanvasControls: React.FC<{
           e.stopPropagation();
           onZoomIn();
         }}
-        className="p-2 rounded-lg bg-white text-gray-700 hover:bg-gray-100 border-2 border-gray-300 shadow-lg"
+        className="p-2 rounded-lg bg-white/20 backdrop-blur-sm text-gray-700 hover:bg-white/30 border-2 border-gray-300/50 shadow-lg"
         title="Zoom in"
       >
         <ZoomIn size={20} />
@@ -75,7 +75,7 @@ const CanvasControls: React.FC<{
           e.stopPropagation();
           onZoomOut();
         }}
-        className="p-2 rounded-lg bg-white text-gray-700 hover:bg-gray-100 border-2 border-gray-300 shadow-lg"
+        className="p-2 rounded-lg bg-white/20 backdrop-blur-sm text-gray-700 hover:bg-white/30 border-2 border-gray-300/50 shadow-lg"
         title="Zoom out"
       >
         <ZoomOut size={20} />
@@ -87,7 +87,7 @@ const CanvasControls: React.FC<{
           e.stopPropagation();
           onReset();
         }}
-        className="p-2 rounded-lg bg-white text-gray-700 hover:bg-gray-100 border-2 border-gray-300 shadow-lg"
+        className="p-2 rounded-lg bg-white/2 backdrop-blur-sm text-gray-700 hover:bg-white/5 border-2 border-gray-300/50 shadow-lg"
         title="Reset view"
       >
         <RotateCcw size={20} />
@@ -269,8 +269,8 @@ const AppContent: React.FC = () => {
 
   // Zoom/pan controls only affect 2D tools that support zoom
   const showCanvasControls = mode === '2d' && (tool === 'vector' || tool === 'basis' || tool === 'matrix' || tool === 'subspace');
-  const handleZoomIn = () => setScale(s => s * 1.2);
-  const handleZoomOut = () => setScale(s => s / 1.2);
+  const handleZoomIn = () => setScale(s => s * 1.0);
+  const handleZoomOut = () => setScale(s => s / 1.0);
   const handleReset = () => { setScale(1); setOffset({ x: 0, y: 0 }); };
 
   return (
