@@ -291,7 +291,10 @@ const VectorCanvas2D: React.FC<VectorCanvas2DProps> = ({ width, height, scale, o
   // --- Canvas-local pan/zoom handlers ---
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef<{ x: number; y: number; offset: { x: number; y: number } } | null>(null);
-  const PAN_SPEED = 10; // Further increase for much faster panning
+  const PAN_SPEED = 1; // Further increase for much faster panning
+  // For smooth panning
+  const panAnimationFrame = useRef<number | null>(null);
+  const lastPanEvent = useRef<{ x: number; y: number } | null>(null);
 
   // Pinch-to-zoom state with threshold detection
   const pinchState = useRef<{
@@ -442,13 +445,25 @@ const VectorCanvas2D: React.FC<VectorCanvas2DProps> = ({ width, height, scale, o
   };
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!dragging || !dragStart.current) return;
-    const dx = (e.clientX - dragStart.current.x) / (innerWidth) * (2 * 10 / scale) * PAN_SPEED;
-    const dy = (e.clientY - dragStart.current.y) / (innerHeight) * (2 * 10 / scale) * PAN_SPEED;
-    onPanChange({ x: dragStart.current.offset.x - dx, y: dragStart.current.offset.y + dy });
+    lastPanEvent.current = { x: e.clientX, y: e.clientY };
+    if (panAnimationFrame.current === null) {
+      panAnimationFrame.current = requestAnimationFrame(() => {
+        if (!dragStart.current || !lastPanEvent.current) return;
+        const dx = (lastPanEvent.current.x - dragStart.current.x) / (innerWidth) * (2 * 10 / scale) * PAN_SPEED;
+        const dy = (lastPanEvent.current.y - dragStart.current.y) / (innerHeight) * (2 * 10 / scale) * PAN_SPEED;
+        onPanChange({ x: dragStart.current.offset.x - dx, y: dragStart.current.offset.y + dy });
+        panAnimationFrame.current = null;
+      });
+    }
   };
   const handleMouseUp = () => {
     setDragging(false);
     dragStart.current = null;
+    if (panAnimationFrame.current !== null) {
+      cancelAnimationFrame(panAnimationFrame.current);
+      panAnimationFrame.current = null;
+    }
+    lastPanEvent.current = null;
   };
 
   return (
@@ -470,7 +485,7 @@ const VectorCanvas2D: React.FC<VectorCanvas2DProps> = ({ width, height, scale, o
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      <svg ref={svgRef} className="w-full h-full" style={{ touchAction: 'inherit' }}></svg>
+      <svg ref={svgRef} className="w-full h-full" style={{ touchAction: 'inherit' }} />
     </div>
   );
 };
