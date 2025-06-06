@@ -296,38 +296,135 @@ const VectorCanvas2D: React.FC<VectorCanvas2DProps> = ({ width, height, scale, o
     
   }, [vectors2D, width, height, margin, settings, activeVectorIndex, basisSettings, scale, offset]);
   
-  // Mouse wheel for zoom
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
-    onScaleChange(Math.max(0.0001, scale * zoomFactor));
+  // --- Canvas-local pan/zoom handlers ---
+  const [dragging, setDragging] = useState(false);
+  const dragStart = useRef<{ x: number; y: number; offset: { x: number; y: number } } | null>(null);
+
+  // Pinch-to-zoom state
+  const pinchState = useRef<{
+    initialDistance: number;
+    initialScale: number;
+    initialOffset: { x: number; y: number };
+    initialMid: { x: number; y: number };
+  } | null>(null);
+
+  // Prevent browser pinch-zoom and double-tap zoom on canvas
+  useEffect(() => {
+    const div = document.getElementById('vector-canvas-2d-container');
+    if (!div) return;
+    // For iOS Safari
+    const preventDefault = (e: Event) => e.preventDefault();
+    div.addEventListener('gesturestart', preventDefault);
+    div.addEventListener('gesturechange', preventDefault);
+    div.addEventListener('gestureend', preventDefault);
+    return () => {
+      div.removeEventListener('gesturestart', preventDefault);
+      div.removeEventListener('gesturechange', preventDefault);
+      div.removeEventListener('gestureend', preventDefault);
+    };
+  }, []);
+
+  // Pinch-to-zoom touch handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      const rect = (e.target as Element).getBoundingClientRect();
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      const dx = t2.clientX - t1.clientX;
+      const dy = t2.clientY - t1.clientY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      const midX = (t1.clientX + t2.clientX) / 2 - rect.left - margin.left;
+      const midY = (t1.clientY + t2.clientY) / 2 - rect.top - margin.top;
+      pinchState.current = {
+        initialDistance: distance,
+        initialScale: scale,
+        initialOffset: { ...offset },
+        initialMid: { x: midX, y: midY },
+      };
+    }
   };
 
-  // Mouse drag for pan
-  let last = useRef<{ x: number; y: number } | null>(null);
-  const handleMouseDown = (e: React.MouseEvent) => {
-    last.current = { x: e.clientX, y: e.clientY };
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2 && pinchState.current) {
+      e.preventDefault();
+      const rect = (e.target as Element).getBoundingClientRect();
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      const dx = t2.clientX - t1.clientX;
+      const dy = t2.clientY - t1.clientY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      const scaleFactor = distance / pinchState.current.initialDistance;
+      const newScale = Math.max(0.0001, pinchState.current.initialScale * scaleFactor);
+      // Zoom to midpoint
+      const midX = (t1.clientX + t2.clientX) / 2 - rect.left - margin.left;
+      const midY = (t1.clientY + t2.clientY) / 2 - rect.top - margin.top;
+      const svgX = (midX / innerWidth) * (2 * 10 / scale) + offset.x - 10 / scale;
+      const svgY = (1 - midY / innerHeight) * (2 * 10 / scale) + offset.y - 10 / scale;
+      const newOffset = {
+        x: svgX - (svgX - offset.x) * (scale / newScale),
+        y: svgY - (svgY - offset.y) * (scale / newScale),
+      };
+      onScaleChange(newScale);
+      onPanChange(newOffset);
+    }
   };
-  const handleMouseMove = (e: MouseEvent) => {
-    if (!last.current) return;
-    const dx = (e.clientX - last.current.x) / (scale * 40); // 40 px per world unit
-    const dy = (e.clientY - last.current.y) / (scale * 40);
-    onPanChange({ x: offset.x - dx, y: offset.y + dy });
-    last.current = { x: e.clientX, y: e.clientY };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (e.touches.length < 2) {
+      pinchState.current = null;
+    }
+  };
+
+  // Mouse and wheel handlers (restored)
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const mouseX = e.clientX - rect.left - margin.left;
+    const mouseY = e.clientY - rect.top - margin.top;
+    // Zoom to mouse position
+    const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+    const newScale = Math.max(0.0001, scale * zoomFactor);
+    // Adjust offset so zoom is centered on mouse
+    const svgX = (mouseX / innerWidth) * (2 * 10 / scale) + offset.x - 10 / scale;
+    const svgY = (1 - mouseY / innerHeight) * (2 * 10 / scale) + offset.y - 10 / scale;
+    const newOffset = {
+      x: svgX - (svgX - offset.x) * (scale / newScale),
+      y: svgY - (svgY - offset.y) * (scale / newScale),
+    };
+    onScaleChange(newScale);
+    onPanChange(newOffset);
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setDragging(true);
+    dragStart.current = { x: e.clientX, y: e.clientY, offset: { ...offset } };
+  };
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!dragging || !dragStart.current) return;
+    const dx = (e.clientX - dragStart.current.x) / (innerWidth) * (2 * 10 / scale);
+    const dy = (e.clientY - dragStart.current.y) / (innerHeight) * (2 * 10 / scale);
+    onPanChange({ x: dragStart.current.offset.x - dx, y: dragStart.current.offset.y + dy });
   };
   const handleMouseUp = () => {
-    window.removeEventListener('mousemove', handleMouseMove);
-    window.removeEventListener('mouseup', handleMouseUp);
-    last.current = null;
+    setDragging(false);
+    dragStart.current = null;
   };
 
   return (
-    <div className="vector-canvas-2d bg-white rounded-lg shadow-lg select-none"
-      style={{ width, height }}
+    <div
+      id="vector-canvas-2d-container"
+      className="vector-canvas-2d bg-white rounded-lg shadow-lg select-none"
+      style={{ width, height, cursor: dragging ? 'grabbing' : 'grab', touchAction: 'none' }}
       onWheel={handleWheel}
       onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       <svg ref={svgRef} className="w-full h-full" style={{ touchAction: 'none' }}></svg>
     </div>
