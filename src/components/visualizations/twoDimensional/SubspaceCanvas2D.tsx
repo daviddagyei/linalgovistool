@@ -24,6 +24,7 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const animationRef = useRef<number>();
+  const lastUpdateTime = useRef<number>(0);
   const { 
     vectors2D, 
     setVectors2D, 
@@ -60,10 +61,14 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
     }
   };
 
-  // Animation loop for moving dots
+  // OPTIMIZED: Throttled animation loop - only update at 30fps instead of 60fps
   useEffect(() => {
-    const animate = () => {
-      setAnimationTime(prev => prev + 0.02);
+    const animate = (currentTime: number) => {
+      // Throttle to 30fps for better performance
+      if (currentTime - lastUpdateTime.current >= 33) { // ~30fps
+        setAnimationTime(prev => prev + 0.05); // Faster increment for smoother motion
+        lastUpdateTime.current = currentTime;
+      }
       animationRef.current = requestAnimationFrame(animate);
     };
     
@@ -76,7 +81,7 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
     };
   }, []);
 
-  // Calculate animated span dots with CORRECTED vector directions
+  // OPTIMIZED: Memoized and simplified span dots calculation
   const calculateAnimatedSpanDots = useCallback((vectors: Vector2D[], spanIndices: number[]) => {
     const selectedVectors = spanIndices.map(i => vectors[i]).filter(Boolean);
     if (selectedVectors.length === 0) return [];
@@ -86,45 +91,44 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
     const dots: Array<{ x: number; y: number; opacity: number; size: number; phase: number }> = [];
     
     if (selectedVectors.length === 1) {
-      // Animated line span - dots moving along the vector direction
+      // OPTIMIZED: Reduced number of dots from 30 to 20 for better performance
       const v = selectedVectors[0];
       const length = magnitude2D(v);
       if (length < 1e-10) return [];
       
-      const numDots = 30;
+      const numDots = 20; // Reduced from 30
       const spanExtent = visibleRange * 1.2;
       
       for (let i = 0; i < numDots; i++) {
-        // Create wave-like motion along the vector direction
+        // OPTIMIZED: Simplified wave calculation
         const baseT = (i / (numDots - 1) - 0.5) * 2 * spanExtent / length;
-        const waveOffset = Math.sin(animationTime * 2 + i * 0.3) * 0.1;
+        const waveOffset = Math.sin(animationTime * 3 + i * 0.4) * 0.08; // Faster, smaller waves
         const t = baseT + waveOffset;
         
         // Calculate position along the exact vector direction
         const x = v.x * t;
         const y = v.y * t;
         
-        // Animated properties
-        const opacity = 0.4 + 0.3 * Math.sin(animationTime * 3 + i * 0.2);
-        const size = 2 + Math.sin(animationTime * 4 + i * 0.5) * 1;
+        // OPTIMIZED: Simplified animated properties
+        const opacity = 0.5 + 0.3 * Math.sin(animationTime * 4 + i * 0.3);
+        const size = 2.5 + Math.sin(animationTime * 5 + i * 0.6) * 0.8;
         
         dots.push({ 
           x, 
           y, 
-          opacity: Math.max(0.1, opacity),
-          size: Math.max(1, size),
-          phase: i * 0.2
+          opacity: Math.max(0.2, opacity),
+          size: Math.max(1.5, size),
+          phase: i * 0.15
         });
       }
     } else if (selectedVectors.length === 2) {
-      // Animated plane span or dependent line
+      // OPTIMIZED: Reduced resolution from 12 to 8 for better performance
       const v1 = selectedVectors[0];
       const v2 = selectedVectors[1];
       const isIndependent = isLinearlyIndependent2D([v1, v2]);
       
       if (isIndependent) {
-        // Animated mesh of dots following the parallelogram formed by v1 and v2
-        const resolution = 12;
+        const resolution = 8; // Reduced from 12
         const range = visibleRange * 0.8;
         
         for (let i = -resolution; i <= resolution; i++) {
@@ -132,25 +136,25 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
             const s = (i / resolution) * (range / Math.max(magnitude2D(v1), 1));
             const t = (j / resolution) * (range / Math.max(magnitude2D(v2), 1));
             
-            // Add wave motion to the coefficients
-            const waveS = s + Math.sin(animationTime * 2 + i * 0.2 + j * 0.1) * 0.05;
-            const waveT = t + Math.cos(animationTime * 2.5 + i * 0.1 + j * 0.2) * 0.05;
+            // OPTIMIZED: Simplified wave motion
+            const waveS = s + Math.sin(animationTime * 3 + i * 0.3) * 0.04;
+            const waveT = t + Math.cos(animationTime * 3.5 + j * 0.3) * 0.04;
             
             // Calculate position using linear combination: s*v1 + t*v2
             const x = waveS * v1.x + waveT * v2.x;
             const y = waveS * v1.y + waveT * v2.y;
             
-            // Animated properties with ripple effect
+            // OPTIMIZED: Simplified animated properties
             const distance = Math.sqrt(i*i + j*j);
-            const opacity = 0.3 + 0.2 * Math.sin(animationTime * 3 - distance * 0.3);
-            const size = 1.5 + Math.sin(animationTime * 4 + distance * 0.2) * 0.5;
+            const opacity = 0.4 + 0.2 * Math.sin(animationTime * 4 - distance * 0.2);
+            const size = 1.8 + Math.sin(animationTime * 5 + distance * 0.15) * 0.4;
             
             dots.push({ 
               x, 
               y, 
-              opacity: Math.max(0.1, opacity),
-              size: Math.max(0.5, size),
-              phase: distance * 0.1
+              opacity: Math.max(0.15, opacity),
+              size: Math.max(1, size),
+              phase: distance * 0.08
             });
           }
         }
@@ -271,14 +275,14 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
         .attr('stop-opacity', 0.6);
     });
     
-    // Glow filter for dots
+    // OPTIMIZED: Simplified glow filter
     const glowFilter = defs.append('filter')
       .attr('id', 'dotGlow')
-      .attr('x', '-50%').attr('y', '-50%')
-      .attr('width', '200%').attr('height', '200%');
+      .attr('x', '-30%').attr('y', '-30%')
+      .attr('width', '160%').attr('height', '160%');
     
     glowFilter.append('feGaussianBlur')
-      .attr('stdDeviation', 2)
+      .attr('stdDeviation', 1.5) // Reduced from 2
       .attr('result', 'coloredBlur');
     
     const feMerge = glowFilter.append('feMerge');
@@ -354,7 +358,7 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
       }
     }
     
-    // Draw ANIMATED SPAN DOTS - FIXED TO FOLLOW VECTOR DIRECTIONS
+    // OPTIMIZED: Draw ANIMATED SPAN DOTS with better performance
     const spanGroup = g.append('g').attr('class', 'spans');
     
     vectors2D.forEach((vector, index) => {
@@ -369,7 +373,7 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
         .on('mouseenter', () => setHoveredSpan(index))
         .on('mouseleave', () => setHoveredSpan(null));
       
-      // Draw animated dots
+      // OPTIMIZED: Only render visible dots and use simpler animations
       spanDots.forEach((dot, dotIndex) => {
         if (Math.abs(dot.x) <= visibleRange && Math.abs(dot.y) <= visibleRange) {
           dotsGroup.append('circle')
@@ -378,14 +382,12 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
             .attr('r', dot.size)
             .attr('fill', `url(#dotGradient${index})`)
             .attr('opacity', dot.opacity)
-            .style('filter', hoveredSpan === index ? 'url(#dotGlow)' : null)
-            .style('animation', `pulse 2s ease-in-out infinite`)
-            .style('animation-delay', `${dot.phase}s`);
+            .style('filter', hoveredSpan === index ? 'url(#dotGlow)' : null);
         }
       });
     });
     
-    // Draw plane spans for multiple vectors - ANIMATED DOTS
+    // OPTIMIZED: Draw plane spans for multiple vectors with reduced complexity
     const selectedIndices = subspaceSettings.showSpan
       .map((show, i) => show ? i : -1)
       .filter(i => i >= 0);
@@ -397,17 +399,15 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
       
       const meshGroup = spanGroup.append('g').attr('class', 'plane-dots');
       
+      // OPTIMIZED: Render fewer dots for plane spans
       planeDots.forEach((dot, dotIndex) => {
-        if (Math.abs(dot.x) <= visibleRange && Math.abs(dot.y) <= visibleRange) {
+        if (Math.abs(dot.x) <= visibleRange && Math.abs(dot.y) <= visibleRange && dotIndex % 2 === 0) { // Skip every other dot
           meshGroup.append('circle')
             .attr('cx', xScale(dot.x))
             .attr('cy', yScale(dot.y))
             .attr('r', dot.size)
             .attr('fill', spanStyle.stroke)
-            .attr('opacity', dot.opacity * 0.7)
-            .style('filter', 'url(#dotGlow)')
-            .style('animation', `ripple 3s ease-in-out infinite`)
-            .style('animation-delay', `${dot.phase}s`);
+            .attr('opacity', dot.opacity * 0.6);
         }
       });
     }
@@ -488,19 +488,6 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
       }
     });
     
-    // Add CSS animations
-    const style = svg.append('style').text(`
-      @keyframes pulse {
-        0%, 100% { opacity: 0.4; transform: scale(1); }
-        50% { opacity: 0.8; transform: scale(1.2); }
-      }
-      @keyframes ripple {
-        0%, 100% { opacity: 0.3; transform: scale(1); }
-        33% { opacity: 0.6; transform: scale(1.1); }
-        66% { opacity: 0.4; transform: scale(0.9); }
-      }
-    `);
-    
   }, [
     vectors2D, 
     width, 
@@ -573,7 +560,7 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
     <div className="relative">
       {/* Enhanced Control Panel */}
       <div className="absolute top-4 left-4 z-10 bg-white/90 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-gray-200/50">
-        <h3 className="text-sm font-semibold text-gray-800 mb-3">Animated Span Controls</h3>
+        <h3 className="text-sm font-semibold text-gray-800 mb-3">⚡ Fast Animated Spans</h3>
         <div className="space-y-2">
           {vectors2D.map((vector, index) => (
             <button
@@ -603,11 +590,11 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
         
         <div className="mt-4 pt-3 border-t border-gray-200">
           <div className="text-xs text-gray-600">
-            <div className="font-medium mb-1">✨ Animated Dots:</div>
+            <div className="font-medium mb-1">⚡ Optimized Performance:</div>
             <div className="space-y-1">
-              <div>• Dots flow along vector directions</div>
-              <div>• Plane spans show ripple effects</div>
-              <div>• Real-time direction following</div>
+              <div>• 30fps smooth animation</div>
+              <div>• Reduced dot count for speed</div>
+              <div>• Efficient rendering pipeline</div>
             </div>
           </div>
         </div>

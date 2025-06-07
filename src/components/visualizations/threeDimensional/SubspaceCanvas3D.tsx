@@ -99,29 +99,33 @@ const VectorArrow: React.FC<{
   );
 };
 
-// FIXED: Animated Line Span that follows exact vector direction
-const AnimatedSpanLine: React.FC<{
+// OPTIMIZED: Fast Animated Line Span with reduced complexity
+const FastAnimatedSpanLine: React.FC<{
   vector: { x: number; y: number; z: number };
   color: string;
   range?: number;
 }> = ({ vector, color, range = 8 }) => {
   const pointsRef = useRef<THREE.Points>(null);
+  const lastUpdateTime = useRef<number>(0);
   
   useFrame((state) => {
+    // OPTIMIZED: Throttle updates to 20fps for better performance
+    if (state.clock.elapsedTime - lastUpdateTime.current < 0.05) return;
+    lastUpdateTime.current = state.clock.elapsedTime;
+    
     if (pointsRef.current) {
-      // Animate the points along the vector direction
       const time = state.clock.elapsedTime;
       const positions = pointsRef.current.geometry.attributes.position;
       
       if (positions) {
         const vectorMagnitude = magnitude3D(vector);
         if (vectorMagnitude > 1e-10) {
-          const steps = 100;
+          const steps = 60; // Reduced from 100
           
           for (let i = 0; i < steps; i++) {
             const baseT = (i / (steps - 1) - 0.5) * 2 * range / vectorMagnitude;
-            // Add wave motion along the vector direction
-            const waveOffset = Math.sin(time * 2 + i * 0.1) * 0.1;
+            // OPTIMIZED: Simplified wave motion
+            const waveOffset = Math.sin(time * 4 + i * 0.15) * 0.08;
             const t = baseT + waveOffset;
             
             positions.setXYZ(i, 
@@ -139,9 +143,8 @@ const AnimatedSpanLine: React.FC<{
   
   const { geometry, material } = useMemo(() => {
     const points: Vector3[] = [];
-    const steps = 100;
+    const steps = 60; // Reduced from 100
     
-    // CRITICAL FIX: Generate points along the exact vector direction
     const vectorMagnitude = magnitude3D(vector);
     if (vectorMagnitude < 1e-10) {
       points.push(new Vector3(0, 0, 0));
@@ -159,9 +162,9 @@ const AnimatedSpanLine: React.FC<{
     const geometry = new BufferGeometry().setFromPoints(points);
     const material = new THREE.PointsMaterial({
       color: color,
-      size: 0.08,
+      size: 0.1, // Slightly larger for better visibility
       transparent: true,
-      opacity: 0.7,
+      opacity: 0.8,
       sizeAttenuation: true
     });
     
@@ -173,16 +176,21 @@ const AnimatedSpanLine: React.FC<{
   );
 };
 
-// FIXED: Animated Plane Span with flowing dots
-const AnimatedSpanPlane: React.FC<{
+// OPTIMIZED: Fast Animated Plane Span with reduced complexity
+const FastAnimatedSpanPlane: React.FC<{
   vectors: { x: number; y: number; z: number }[];
   color: string;
   isIndependent: boolean;
   opacity?: number;
 }> = ({ vectors, color, isIndependent, opacity = 0.3 }) => {
   const pointsRef = useRef<THREE.Points>(null);
+  const lastUpdateTime = useRef<number>(0);
   
   useFrame((state) => {
+    // OPTIMIZED: Throttle updates to 15fps for plane animations
+    if (state.clock.elapsedTime - lastUpdateTime.current < 0.067) return;
+    lastUpdateTime.current = state.clock.elapsedTime;
+    
     if (pointsRef.current) {
       const time = state.clock.elapsedTime;
       const positions = pointsRef.current.geometry.attributes.position;
@@ -190,7 +198,7 @@ const AnimatedSpanPlane: React.FC<{
       if (positions && vectors.length >= 2) {
         const v1 = vectors[0];
         const v2 = vectors[1];
-        const resolution = 15;
+        const resolution = 10; // Reduced from 15
         const size = 6;
         let index = 0;
         
@@ -199,11 +207,10 @@ const AnimatedSpanPlane: React.FC<{
             const scale1 = size / (2 * Math.max(magnitude3D(v1), 1));
             const scale2 = size / (2 * Math.max(magnitude3D(v2), 1));
             
-            // Add wave motion to the plane
-            const waveS = (i / resolution) * scale1 + Math.sin(time * 2 + i * 0.1 + j * 0.05) * 0.02;
-            const waveT = (j / resolution) * scale2 + Math.cos(time * 2.5 + i * 0.05 + j * 0.1) * 0.02;
+            // OPTIMIZED: Simplified wave motion
+            const waveS = (i / resolution) * scale1 + Math.sin(time * 3 + i * 0.2) * 0.015;
+            const waveT = (j / resolution) * scale2 + Math.cos(time * 3.5 + j * 0.2) * 0.015;
             
-            // FIXED: Use linear combination of v1 and v2
             const newX = waveS * v1.x + waveT * v2.x;
             const newY = waveS * v1.y + waveT * v2.y;
             const newZ = waveS * v1.z + waveT * v2.z;
@@ -224,10 +231,9 @@ const AnimatedSpanPlane: React.FC<{
     const v1 = vectors[0];
     const v2 = vectors[1];
     const points: Vector3[] = [];
-    const resolution = 15;
+    const resolution = 10; // Reduced from 15
     const size = 6;
     
-    // Generate initial points using linear combinations
     for (let i = -resolution; i <= resolution; i++) {
       for (let j = -resolution; j <= resolution; j++) {
         const scale1 = size / (2 * Math.max(magnitude3D(v1), 1));
@@ -236,7 +242,6 @@ const AnimatedSpanPlane: React.FC<{
         const s = (i / resolution) * scale1;
         const t = (j / resolution) * scale2;
         
-        // FIXED: Use linear combination s*v1 + t*v2
         points.push(new Vector3(
           s * v1.x + t * v2.x,
           s * v1.y + t * v2.y,
@@ -248,9 +253,9 @@ const AnimatedSpanPlane: React.FC<{
     const geometry = new BufferGeometry().setFromPoints(points);
     const material = new THREE.PointsMaterial({
       color: color,
-      size: 0.06,
+      size: 0.08, // Slightly larger
       transparent: true,
-      opacity: opacity * 1.5,
+      opacity: opacity * 1.2,
       sizeAttenuation: true
     });
     
@@ -262,8 +267,8 @@ const AnimatedSpanPlane: React.FC<{
   );
 };
 
-// FIXED: Enhanced Span Visualization with animated dots
-const AnimatedSpanVisualization: React.FC<{
+// OPTIMIZED: Fast Span Visualization with performance improvements
+const FastAnimatedSpanVisualization: React.FC<{
   vectors: { x: number; y: number; z: number }[];
   selectedIndices: boolean[];
   colorScheme: any;
@@ -274,55 +279,47 @@ const AnimatedSpanVisualization: React.FC<{
   if (selectedVectors.length === 0) return null;
   
   if (selectedVectors.length === 1) {
-    // FIXED: Animated line span with correct vector direction
     const vectorIndex = vectors.findIndex(v => v === selectedVectors[0]);
     const color = colorScheme.vectors[vectorIndex % colorScheme.vectors.length].primary;
-    return <AnimatedSpanLine vector={selectedVectors[0]} color={color} />;
+    return <FastAnimatedSpanLine vector={selectedVectors[0]} color={color} />;
   } else if (selectedVectors.length === 2) {
-    // FIXED: Animated plane span using correct vector directions
     const vectorIndex1 = vectors.findIndex(v => v === selectedVectors[0]);
     const vectorIndex2 = vectors.findIndex(v => v === selectedVectors[1]);
     const color = isIndependent ? colorScheme.spans.independent.stroke : colorScheme.spans.dependent.stroke;
     
     return (
       <group>
-        <AnimatedSpanPlane 
+        <FastAnimatedSpanPlane 
           vectors={selectedVectors} 
           color={color} 
           isIndependent={isIndependent}
           opacity={0.4}
         />
-        {/* Add animated lines along the vector directions */}
+        {/* OPTIMIZED: Only show vector lines if independent */}
         {isIndependent && (
           <group>
-            <AnimatedSpanLine vector={selectedVectors[0]} color={colorScheme.vectors[vectorIndex1 % colorScheme.vectors.length].primary} range={6} />
-            <AnimatedSpanLine vector={selectedVectors[1]} color={colorScheme.vectors[vectorIndex2 % colorScheme.vectors.length].primary} range={6} />
+            <FastAnimatedSpanLine vector={selectedVectors[0]} color={colorScheme.vectors[vectorIndex1 % colorScheme.vectors.length].primary} range={5} />
+            <FastAnimatedSpanLine vector={selectedVectors[1]} color={colorScheme.vectors[vectorIndex2 % colorScheme.vectors.length].primary} range={5} />
           </group>
         )}
       </group>
     );
   } else if (selectedVectors.length === 3) {
-    // 3D span visualization with multiple animated planes
     if (isIndependent) {
+      // OPTIMIZED: Show only 2 planes instead of 3 for better performance
       return (
         <group>
-          <AnimatedSpanPlane 
+          <FastAnimatedSpanPlane 
             vectors={[selectedVectors[0], selectedVectors[1]]} 
             color={colorScheme.spans.independent.stroke} 
             isIndependent={true}
-            opacity={0.2}
+            opacity={0.15}
           />
-          <AnimatedSpanPlane 
+          <FastAnimatedSpanPlane 
             vectors={[selectedVectors[1], selectedVectors[2]]} 
             color={colorScheme.spans.independent.stroke} 
             isIndependent={true}
-            opacity={0.2}
-          />
-          <AnimatedSpanPlane 
-            vectors={[selectedVectors[0], selectedVectors[2]]} 
-            color={colorScheme.spans.independent.stroke} 
-            isIndependent={true}
-            opacity={0.2}
+            opacity={0.15}
           />
         </group>
       );
@@ -336,11 +333,11 @@ const AnimatedSpanVisualization: React.FC<{
         }
       }
       
-      return <AnimatedSpanPlane 
+      return <FastAnimatedSpanPlane 
         vectors={effectiveVectors} 
         color={colorScheme.spans.dependent.stroke} 
         isIndependent={false}
-        opacity={0.3}
+        opacity={0.25}
       />;
     }
   }
@@ -453,7 +450,7 @@ const DraggableLegend: React.FC<{
       onTouchStart={handleTouchStart}
     >
       <div className="flex items-center justify-between mb-4">
-        <h4 className="text-lg font-bold text-gray-800">3D Animated Spans</h4>
+        <h4 className="text-lg font-bold text-gray-800">⚡ Fast 3D Spans</h4>
         <div className="text-xs text-gray-400">⋮⋮</div>
       </div>
       
@@ -522,25 +519,25 @@ const DraggableLegend: React.FC<{
             </div>
             
             <div className="text-xs text-gray-600 mt-2">
-              {selectedCount === 1 && '✨ Animated dots flow along vector direction'}
-              {selectedCount === 2 && isIndependent && '✨ Animated plane with flowing dots'}
-              {selectedCount === 2 && !isIndependent && '✨ Animated line (vectors dependent)'}
-              {selectedCount === 3 && isIndependent && '✨ Multiple animated planes spanning ℝ³'}
-              {selectedCount === 3 && !isIndependent && '✨ Animated plane or line'}
+              {selectedCount === 1 && '⚡ Fast flowing dots along vector direction'}
+              {selectedCount === 2 && isIndependent && '⚡ Optimized animated plane'}
+              {selectedCount === 2 && !isIndependent && '⚡ Fast line animation (dependent vectors)'}
+              {selectedCount === 3 && isIndependent && '⚡ Efficient multi-plane visualization'}
+              {selectedCount === 3 && !isIndependent && '⚡ Optimized plane or line'}
             </div>
           </div>
         </div>
       )}
       
-      {/* Educational Info */}
-      <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-        <div className="text-sm text-blue-800">
-          <div className="font-medium mb-2">✨ Animated Spans</div>
+      {/* Performance Info */}
+      <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+        <div className="text-sm text-green-800">
+          <div className="font-medium mb-2">⚡ Performance Optimized</div>
           <div className="text-xs space-y-1">
-            <div>• <strong>Flowing dots:</strong> Follow exact vector directions</div>
-            <div>• <strong>Wave motion:</strong> Shows span continuity</div>
-            <div>• <strong>Real-time:</strong> Updates as you drag vectors</div>
-            <div>• <strong>Direction matters:</strong> Spans follow vector paths</div>
+            <div>• <strong>Reduced complexity:</strong> Fewer dots for speed</div>
+            <div>• <strong>Throttled updates:</strong> 15-20fps for smooth motion</div>
+            <div>• <strong>Smart rendering:</strong> Only visible elements</div>
+            <div>• <strong>Efficient algorithms:</strong> Optimized calculations</div>
           </div>
         </div>
       </div>
@@ -591,12 +588,12 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
       style={{ width, height }}
     >
       {/* Enhanced Header */}
-      <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-purple-50 to-blue-50 p-4 border-b border-gray-200/50 z-10">
+      <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-green-50 to-blue-50 p-4 border-b border-gray-200/50 z-10">
         <h3 className="text-lg font-bold text-gray-800 mb-1">
-          3D Animated Subspace Visualization
+          ⚡ Fast 3D Animated Subspace Visualization
         </h3>
         <p className="text-sm text-gray-600">
-          ✨ Watch animated dots flow along exact vector directions in three-dimensional space
+          Optimized performance with smooth 15-20fps animations following exact vector directions
         </p>
       </div>
       
@@ -710,8 +707,8 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
           </>
         )}
         
-        {/* FIXED: Animated Span Visualization with flowing dots */}
-        <AnimatedSpanVisualization
+        {/* OPTIMIZED: Fast Animated Span Visualization */}
+        <FastAnimatedSpanVisualization
           vectors={vectors3D}
           selectedIndices={subspaceSettings.showSpan}
           colorScheme={colorScheme}
