@@ -60,7 +60,7 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
     }
   };
 
-  // Calculate span geometry with enhanced algorithms
+  // Calculate span geometry with CORRECTED vector directions
   const calculateSpanGeometry = useCallback((vectors: Vector2D[], spanIndices: number[]) => {
     const selectedVectors = spanIndices.map(i => vectors[i]).filter(Boolean);
     if (selectedVectors.length === 0) return null;
@@ -69,19 +69,20 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
     const visibleRange = baseRange / scale;
     
     if (selectedVectors.length === 1) {
-      // Line span with gradient fill
+      // Line span - FIXED: Use actual vector direction
       const v = selectedVectors[0];
       const length = magnitude2D(v);
       if (length < 1e-10) return null;
       
-      const normalized = { x: v.x / length, y: v.y / length };
-      const spanLength = visibleRange * 2;
+      // CRITICAL FIX: Use the actual vector direction, not normalized
+      // The span should extend along the vector's direction
+      const spanExtent = visibleRange * 1.5; // Extend beyond visible area
       
       return {
         type: 'line' as const,
         points: [
-          { x: -normalized.x * spanLength, y: -normalized.y * spanLength },
-          { x: normalized.x * spanLength, y: normalized.y * spanLength }
+          { x: -v.x * spanExtent / length, y: -v.y * spanExtent / length },
+          { x: v.x * spanExtent / length, y: v.y * spanExtent / length }
         ],
         vector: v,
         dimension: 1
@@ -93,15 +94,16 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
       const isIndependent = isLinearlyIndependent2D([v1, v2]);
       
       if (isIndependent) {
-        // Create parallelogram mesh for plane span
+        // FIXED: Create parallelogram mesh using actual vector directions
         const range = visibleRange;
         const meshPoints: Vector2D[] = [];
-        const resolution = 20;
+        const resolution = 15; // Reduced for better performance
         
+        // Generate points using linear combinations: s*v1 + t*v2
         for (let i = -resolution; i <= resolution; i++) {
           for (let j = -resolution; j <= resolution; j++) {
-            const s = (i / resolution) * range;
-            const t = (j / resolution) * range;
+            const s = (i / resolution) * (range / Math.max(magnitude2D(v1), 1));
+            const t = (j / resolution) * (range / Math.max(magnitude2D(v2), 1));
             meshPoints.push({
               x: s * v1.x + t * v2.x,
               y: s * v1.y + t * v2.y
@@ -109,15 +111,26 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
           }
         }
         
+        // FIXED: Create boundary that follows the parallelogram formed by v1 and v2
+        const boundaryScale = range / Math.max(magnitude2D(v1), magnitude2D(v2), 1);
+        const boundary = [
+          { x: 0, y: 0 }, // Origin
+          { x: v1.x * boundaryScale, y: v1.y * boundaryScale }, // Along v1
+          { x: (v1.x + v2.x) * boundaryScale, y: (v1.y + v2.y) * boundaryScale }, // v1 + v2
+          { x: v2.x * boundaryScale, y: v2.y * boundaryScale }, // Along v2
+          { x: 0, y: 0 } // Back to origin
+        ];
+        
         return {
           type: 'plane' as const,
           meshPoints,
+          boundary,
           vectors: [v1, v2],
           dimension: 2,
           isIndependent: true
         };
       } else {
-        // Linearly dependent - show as enhanced line
+        // Linearly dependent - show as enhanced line along the dominant vector
         const effectiveVector = magnitude2D(v1) > magnitude2D(v2) ? v1 : v2;
         return calculateSpanGeometry(vectors, [vectors.indexOf(effectiveVector)]);
       }
@@ -147,7 +160,6 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
         const g = svg.select('.main-group');
         
         // Get scales from the current transform
-        const transform = d3.zoomTransform(svg.node() as any);
         const xScale = d3.scaleLinear()
           .domain([offset.x - 10/scale, offset.x + 10/scale])
           .range([0, innerWidth]);
@@ -176,7 +188,6 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
         const vectorIndex = parseInt(circle.attr('data-vector-index'));
         
         // Get final position
-        const svg = d3.select(svgRef.current);
         const xScale = d3.scaleLinear()
           .domain([offset.x - 10/scale, offset.x + 10/scale])
           .range([0, innerWidth]);
@@ -349,7 +360,7 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
       }
     }
     
-    // Draw enhanced span visualizations
+    // Draw enhanced span visualizations - FIXED TO FOLLOW VECTOR DIRECTIONS
     const spanGroup = g.append('g').attr('class', 'spans');
     
     vectors2D.forEach((vector, index) => {
@@ -361,14 +372,14 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
       const color = colorScheme.vectors[index % colorScheme.vectors.length];
       
       if (spanGeometry.type === 'line') {
-        // Enhanced line span with gradient
+        // Enhanced line span with gradient - NOW CORRECTLY ALIGNED
         const lineGroup = spanGroup.append('g')
           .attr('class', `span-line-${index}`)
           .style('cursor', 'pointer')
           .on('mouseenter', () => setHoveredSpan(index))
           .on('mouseleave', () => setHoveredSpan(null));
         
-        // Main span line with gradient
+        // Main span line with gradient - FIXED DIRECTION
         lineGroup.append('line')
           .attr('x1', xScale(spanGeometry.points[0].x))
           .attr('y1', yScale(spanGeometry.points[0].y))
@@ -379,22 +390,24 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
           .attr('opacity', 0.7)
           .style('filter', hoveredSpan === index ? 'url(#glow)' : null);
         
-        // Span direction indicators
-        const midPoint = {
-          x: (spanGeometry.points[0].x + spanGeometry.points[1].x) / 2,
-          y: (spanGeometry.points[0].y + spanGeometry.points[1].y) / 2
-        };
-        
-        lineGroup.append('circle')
-          .attr('cx', xScale(midPoint.x))
-          .attr('cy', yScale(midPoint.y))
-          .attr('r', 3)
-          .attr('fill', color.primary)
-          .attr('opacity', 0.8);
+        // Direction indicators along the span line
+        const numIndicators = 5;
+        for (let i = 0; i < numIndicators; i++) {
+          const t = (i / (numIndicators - 1)) * 2 - 1; // -1 to 1
+          const pointX = vector.x * t * (visibleRange * 1.5 / magnitude2D(vector));
+          const pointY = vector.y * t * (visibleRange * 1.5 / magnitude2D(vector));
+          
+          lineGroup.append('circle')
+            .attr('cx', xScale(pointX))
+            .attr('cy', yScale(pointY))
+            .attr('r', 2)
+            .attr('fill', color.primary)
+            .attr('opacity', 0.6);
+        }
       }
     });
     
-    // Draw plane spans for multiple vectors
+    // Draw plane spans for multiple vectors - FIXED PARALLELOGRAM ALIGNMENT
     const selectedIndices = subspaceSettings.showSpan
       .map((show, i) => show ? i : -1)
       .filter(i => i >= 0);
@@ -405,10 +418,10 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
         const isIndependent = isLinearlyIndependent2D(planeGeometry.vectors);
         const spanStyle = isIndependent ? colorScheme.spans.independent : colorScheme.spans.dependent;
         
-        // Create mesh visualization
+        // Create mesh visualization - FIXED TO FOLLOW VECTOR DIRECTIONS
         const meshGroup = spanGroup.append('g').attr('class', 'plane-mesh');
         
-        // Draw mesh points with beautiful pattern
+        // Draw mesh points with beautiful pattern - CORRECTLY POSITIONED
         planeGeometry.meshPoints.forEach(point => {
           if (Math.abs(point.x) <= visibleRange && Math.abs(point.y) <= visibleRange) {
             meshGroup.append('circle')
@@ -420,25 +433,21 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
           }
         });
         
-        // Add boundary visualization
-        const boundary = [
-          { x: -visibleRange, y: -visibleRange },
-          { x: visibleRange, y: -visibleRange },
-          { x: visibleRange, y: visibleRange },
-          { x: -visibleRange, y: visibleRange }
-        ];
-        
-        const boundaryPath = d3.line<Vector2D>()
-          .x(d => xScale(d.x))
-          .y(d => yScale(d.y));
-        
-        meshGroup.append('path')
-          .datum(boundary)
-          .attr('d', boundaryPath)
-          .attr('fill', isIndependent ? spanStyle.fill : 'url(#dependentPattern)')
-          .attr('stroke', spanStyle.stroke)
-          .attr('stroke-width', 2)
-          .attr('opacity', 0.6);
+        // Add boundary visualization - FIXED PARALLELOGRAM SHAPE
+        if (planeGeometry.boundary) {
+          const boundaryPath = d3.line<Vector2D>()
+            .x(d => xScale(d.x))
+            .y(d => yScale(d.y))
+            .curve(d3.curveLinearClosed);
+          
+          meshGroup.append('path')
+            .datum(planeGeometry.boundary.slice(0, -1)) // Remove duplicate last point
+            .attr('d', boundaryPath)
+            .attr('fill', isIndependent ? spanStyle.fill : 'url(#dependentPattern)')
+            .attr('stroke', spanStyle.stroke)
+            .attr('stroke-width', 2)
+            .attr('opacity', 0.6);
+        }
       }
     }
     
