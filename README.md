@@ -36,7 +36,7 @@
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/linalgovistool.git
+   git clone https://github.com/daviddagyei/linalgovistool.git
    cd linalgovistool
    ```
 
@@ -224,7 +224,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🐛 Bug Reports & Feature Requests
 
 Found a bug or have a feature idea? Please:
-1. Check existing [issues](https://github.com/yourusername/linalgovistool/issues)
+1. Check existing [issues](https://github.com/daviddagyei/linalgovistool/issues)
 2. Create a new issue with detailed description
 3. Include browser/device information for bugs
 4. Provide steps to reproduce for bug reports
@@ -232,8 +232,8 @@ Found a bug or have a feature idea? Please:
 ## 📞 Support & Contact
 
 - **Documentation**: Built-in help system (click "Docs" in the app)
-- **Issues**: [GitHub Issues](https://github.com/yourusername/linalgovistool/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/linalgovistool/discussions)
+- **Issues**: [GitHub Issues](https://github.com/daviddagyei/linalgovistool/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/daviddagyei/linalgovistool/discussions)
 
 ---
 
