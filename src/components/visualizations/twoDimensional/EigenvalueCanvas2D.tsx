@@ -39,15 +39,15 @@ const EigenvalueCanvas2D: React.FC<EigenvalueCanvas2DProps> = ({
   const innerHeight = height - margin.top - margin.bottom;
   
   // State for draggable legend
-  const [legendPosition, setLegendPosition] = useState({ x: innerWidth - 180, y: 10 });
+  const [legendPosition, setLegendPosition] = useState({ x: innerWidth - 150, y: 5 });
   
-  // Calculate responsive legend dimensions based on screen size - larger for more information
-  const legendWidth = width < 640 ? Math.min(200, width - 40) : 250;
-  const legendHeight = width < 640 ? 200 : 300;
+  // Calculate responsive legend dimensions - reduced for more compact legend
+  const legendWidth = width < 640 ? Math.min(160, width - 30) : 180;
+  const legendHeight = width < 640 ? 180 : 250;
   
   useEffect(() => {
-    // Reset legend position when dimensions change
-    setLegendPosition({ x: Math.max(10, innerWidth - legendWidth - 10), y: 10 });
+    // Reset legend position when dimensions change - positioned more to the top right
+    setLegendPosition({ x: Math.max(5, innerWidth - legendWidth - 5), y: 5 });
   }, [innerWidth, legendWidth]);
 
   useEffect(() => {
