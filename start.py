@@ -23,10 +23,13 @@ def start_app():
     """Start the Flask application"""
     if not check_dependencies():
         print("❌ Dependencies not found. Installing...")
-        subprocess.run([sys.executable, "-m", "pip", "install", "-r", "backend/requirements.txt"], check=True)
+        subprocess.run([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"], check=True)
     
-    # Change to backend directory and start the app
-    os.chdir("backend")
+    # Add backend directory to Python path
+    backend_path = os.path.join(os.getcwd(), 'backend')
+    sys.path.insert(0, backend_path)
+    
+    # Import and start the Flask app
     from app import app
     
     # Get port from environment (Render sets this automatically)
