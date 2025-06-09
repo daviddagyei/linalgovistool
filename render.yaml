@@ -3,12 +3,10 @@ services:
     name: linalgovistool
     env: python
     buildCommand: |
-      # Install Python dependencies
-      pip install -r backend/requirements.txt
-      # Install Node.js dependencies and build frontend
-      npm install
+      pip install -r requirements.txt &&
+      npm install &&
       npm run build
-    startCommand: cd backend && python app.py
+    startCommand: python start.py
     healthCheckPath: /api/health
     envVars:
       - key: FLASK_ENV
