@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import * as d3 from 'd3';
 import { useVisualizer } from '../../../context/VisualizerContext';
 import { Vector2D } from '../../../types';
-import { magnitude2D, dotProduct2D, isLinearlyIndependent2D } from '../../../utils/mathUtils';
+import { magnitude2D, isLinearlyIndependent2D } from '../../../utils/mathUtils';
 import { getNiceTickStep } from '../../../utils/niceTicks';
 
 interface SubspaceCanvas2DProps {
@@ -168,10 +168,109 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
     return dots;
   }, [scale, animationTime]);
 
+  // Label collision detection and avoidance
+  const calculateOptimalLabelPosition = useCallback((
+    vectorX: number, 
+    vectorY: number, 
+    index: number, 
+    allVectors: Vector2D[], 
+    xScale: d3.ScaleLinear<number, number>, 
+    yScale: d3.ScaleLinear<number, number>
+  ) => {
+    const labelWidth = 120;
+    const labelHeight = 24;
+    
+    // Preferred positions around the vector point (clockwise from top-right)
+    const offsetOptions = [
+      { x: 10, y: -22, priority: 1 }, // Top-right (default)
+      { x: 10, y: 5, priority: 2 },   // Bottom-right
+      { x: -130, y: -22, priority: 3 }, // Top-left
+      { x: -130, y: 5, priority: 4 },   // Bottom-left
+      { x: -60, y: -35, priority: 5 },  // Top-center
+      { x: -60, y: 15, priority: 6 },   // Bottom-center
+      { x: 20, y: -10, priority: 7 },   // Far right
+      { x: -140, y: -10, priority: 8 }  // Far left
+    ];
+    
+    const vectorScreenX = xScale(vectorX);
+    const vectorScreenY = yScale(vectorY);
+    
+    // Get positions of other labels to avoid
+    const otherLabelPositions = allVectors
+      .map((v, i) => {
+        if (i >= index) return null; // Only check labels that are already placed
+        const otherX = xScale(v.x);
+        const otherY = yScale(v.y);
+        return {
+          x: otherX + 10, // Default offset
+          y: otherY - 22,
+          width: labelWidth,
+          height: labelHeight
+        };
+      })
+      .filter(Boolean);
+    
+    // Check if a position collides with existing labels
+    const checkCollision = (x: number, y: number) => {
+      const labelRect = { x, y, width: labelWidth, height: labelHeight };
+      
+      return otherLabelPositions.some(otherLabel => {
+        if (!otherLabel) return false;
+        
+        // Check for rectangle overlap
+        return !(
+          labelRect.x > otherLabel.x + otherLabel.width ||
+          labelRect.x + labelRect.width < otherLabel.x ||
+          labelRect.y > otherLabel.y + otherLabel.height ||
+          labelRect.y + labelRect.height < otherLabel.y
+        );
+      });
+    };
+    
+    // Check if position is within canvas bounds
+    const isWithinBounds = (x: number, y: number) => {
+      return x >= 0 && x + labelWidth <= innerWidth && 
+             y >= 0 && y + labelHeight <= innerHeight;
+    };
+    
+    // Find the best position
+    for (const offset of offsetOptions.sort((a, b) => a.priority - b.priority)) {
+      const candidateX = vectorScreenX + offset.x;
+      const candidateY = vectorScreenY + offset.y;
+      
+      if (isWithinBounds(candidateX, candidateY) && !checkCollision(candidateX, candidateY)) {
+        return { x: candidateX, y: candidateY };
+      }
+    }
+    
+    // If no collision-free position found, use dynamic positioning
+    let bestX = vectorScreenX + 10;
+    let bestY = vectorScreenY - 22;
+    let attempts = 0;
+    const maxAttempts = 20;
+    
+    while (checkCollision(bestX, bestY) && attempts < maxAttempts) {
+      // Spiral outward to find free space
+      const angle = (attempts * 45) * (Math.PI / 180); // 45-degree increments
+      const radius = 30 + (attempts * 5); // Increasing radius
+      
+      bestX = vectorScreenX + Math.cos(angle) * radius;
+      bestY = vectorScreenY + Math.sin(angle) * radius;
+      
+      // Ensure within bounds
+      bestX = Math.max(0, Math.min(innerWidth - labelWidth, bestX));
+      bestY = Math.max(0, Math.min(innerHeight - labelHeight, bestY));
+      
+      attempts++;
+    }
+    
+    return { x: bestX, y: bestY };
+  }, [innerWidth, innerHeight]);
+
   // Enhanced drag behavior
   const createDragBehavior = useCallback(() => {
     return d3.drag<SVGCircleElement, unknown>()
-      .on('start', function(event) {
+      .on('start', function() {
         const circle = d3.select(this);
         const vectorIndex = parseInt(circle.attr('data-vector-index'));
         setActiveVectorIndex(vectorIndex);
@@ -187,15 +286,7 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
         const svg = d3.select(svgRef.current);
         const g = svg.select('.main-group');
         
-        const xScale = d3.scaleLinear()
-          .domain([offset.x - 10/scale, offset.x + 10/scale])
-          .range([0, innerWidth]);
-        const yScale = d3.scaleLinear()
-          .domain([offset.y - 10/scale, offset.y + 10/scale])
-          .range([innerHeight, 0]);
-        
-        const newX = xScale.invert(event.x);
-        const newY = yScale.invert(event.y);
+        // Update vector during drag
         
         const vectorGroup = g.select(`[data-vector-group="${vectorIndex}"]`);
         vectorGroup.select('line')
@@ -361,11 +452,10 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
     // OPTIMIZED: Draw ANIMATED SPAN DOTS with better performance
     const spanGroup = g.append('g').attr('class', 'spans');
     
-    vectors2D.forEach((vector, index) => {
+    vectors2D.forEach((_, index) => {
       if (!subspaceSettings.showSpan[index]) return;
       
       const spanDots = calculateAnimatedSpanDots(vectors2D, [index]);
-      const color = colorScheme.vectors[index % colorScheme.vectors.length];
       
       const dotsGroup = spanGroup.append('g')
         .attr('class', `span-dots-${index}`)
@@ -374,7 +464,7 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
         .on('mouseleave', () => setHoveredSpan(null));
       
       // OPTIMIZED: Only render visible dots and use simpler animations
-      spanDots.forEach((dot, dotIndex) => {
+      spanDots.forEach((dot) => {
         if (Math.abs(dot.x) <= visibleRange && Math.abs(dot.y) <= visibleRange) {
           dotsGroup.append('circle')
             .attr('cx', xScale(dot.x))
@@ -382,7 +472,7 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
             .attr('r', dot.size)
             .attr('fill', `url(#dotGradient${index})`)
             .attr('opacity', dot.opacity)
-            .style('filter', hoveredSpan === index ? 'url(#dotGlow)' : null);
+            .style('filter', hoveredSpan === index ? 'url(#dotGlow)' : 'none');
         }
       });
     });
@@ -433,7 +523,7 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
         .attr('stroke', color.primary)
         .attr('stroke-width', isActive ? 4 : isSpanVisible ? 3 : 2)
         .attr('opacity', isSpanVisible ? 1 : 0.7)
-        .style('filter', isActive ? 'url(#dotGlow)' : null)
+        .style('filter', isActive ? 'url(#dotGlow)' : 'none')
         .attr('marker-end', `url(#arrowhead-${index})`);
       
       defs.append('marker')
@@ -457,16 +547,17 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
         .attr('stroke-width', 2)
         .attr('data-vector-index', index)
         .style('cursor', 'move')
-        .style('filter', isActive ? 'url(#dotGlow)' : null)
+        .style('filter', isActive ? 'url(#dotGlow)' : 'none')
         .call(dragBehavior);
       
       if (settings.showLabels) {
-        const labelX = xScale(vector.x) + 10;
-        const labelY = yScale(vector.y) - 10;
+        const optimalPosition = calculateOptimalLabelPosition(
+          vector.x, vector.y, index, vectors2D, xScale, yScale
+        );
         
         vGroup.append('foreignObject')
-          .attr('x', labelX)
-          .attr('y', labelY - 12)
+          .attr('x', optimalPosition.x)
+          .attr('y', optimalPosition.y)
           .attr('width', 120)
           .attr('height', 24)
           .append('xhtml:div')
@@ -483,8 +574,10 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
             display: inline-block;
             white-space: nowrap;
             font-family: system-ui, -apple-system, sans-serif;
+            position: relative;
+            z-index: ${10 + index};
           `)
-          .html(`v<sub>${index + 1}</sub> (${vector.x.toFixed(1)}, ${vector.y.toFixed(1)})`);
+          .html(`v<sub>${index + 1}</sub> (${vector.x.toFixed(1)}, ${vector.y.toFixed(1)})`);;
       }
     });
     
@@ -499,6 +592,7 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
     scale, 
     offset, 
     calculateAnimatedSpanDots,
+    calculateOptimalLabelPosition,
     createDragBehavior,
     animationTime
   ]);
@@ -562,7 +656,7 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
       <div className="absolute top-4 left-4 z-10 bg-white/90 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-gray-200/50">
         <h3 className="text-sm font-semibold text-gray-800 mb-3">Vector Spans</h3>
         <div className="space-y-2">
-          {vectors2D.map((vector, index) => (
+          {vectors2D.map((_, index) => (
             <button
               key={index}
               onClick={() => toggleSpan(index)}
