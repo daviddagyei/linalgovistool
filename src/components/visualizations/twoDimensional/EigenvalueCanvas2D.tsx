@@ -17,9 +17,20 @@ const getTestVectorColor = (index: number): string => {
 interface EigenvalueCanvas2DProps {
   width: number;
   height: number;
+  scale: number;
+  offset: { x: number; y: number };
+  onPanChange: (offset: { x: number; y: number }) => void;
+  onScaleChange: (scale: number) => void;
 }
 
-const EigenvalueCanvas2D: React.FC<EigenvalueCanvas2DProps> = ({ width, height }) => {
+const EigenvalueCanvas2D: React.FC<EigenvalueCanvas2DProps> = ({ 
+  width, 
+  height, 
+  scale, 
+  offset, 
+  onPanChange, 
+  onScaleChange 
+}) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const { matrix2D, settings, eigenvalueSettings } = useVisualizer();
   
@@ -43,24 +54,18 @@ const EigenvalueCanvas2D: React.FC<EigenvalueCanvas2DProps> = ({ width, height }
     if (!svgRef.current) return;
     d3.select(svgRef.current).selectAll('*').remove();
 
-    // --- D3 Zoom Setup ---
     const svg = d3.select(svgRef.current)
       .attr('width', width)
       .attr('height', height);
-    // Main group for zoom/pan
-    const g = svg.append('g').attr('class', 'main-group').attr('transform', `translate(${margin.left}, ${margin.top})`);
-
-    const zoom = d3.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0.5, 8])
-      .on('zoom', (event) => {
-        g.attr('transform', `translate(${margin.left}, ${margin.top})` + event.transform);
-      });
-    svg.call(zoom as any);
+    
+    const g = svg.append('g')
+      .attr('class', 'main-group')
+      .attr('transform', `translate(${margin.left}, ${margin.top})`);
 
     // Calculate eigenvalues and eigenvectors
     const eigenvalues = calculateEigenvalues2D(matrix2D);
     
-    // Calculate range based on vectors and transformed vectors
+    // Calculate test vectors for transformation visualization
     const testVectors: Vector2D[] = [
       { x: 1, y: 0 },
       { x: 0, y: 1 },
@@ -69,57 +74,48 @@ const EigenvalueCanvas2D: React.FC<EigenvalueCanvas2DProps> = ({ width, height }
     ];
     
     const transformedVectors = testVectors.map(v => applyMatrix2D(matrix2D, v));
-    const allPoints = [
-      ...testVectors,
-      ...transformedVectors,
-      ...eigenvalues.map(e => e.vector as Vector2D)
-    ];
     
-    const maxCoord = Math.max(
-      ...allPoints.map(v => Math.abs(v.x)),
-      ...allPoints.map(v => Math.abs(v.y)),
-      3 // Minimum range
-    );
+    // Calculate range based on zoom/pan props
+    const baseRange = 10;
+    const visibleRange = baseRange / scale;
+    const centerX = offset.x;
+    const centerY = offset.y;
+    const xDomain = [centerX - visibleRange, centerX + visibleRange];
+    const yDomain = [centerY - visibleRange, centerY + visibleRange];
     
     // Set up scales
     const xScale = d3.scaleLinear()
-      .domain([-maxCoord, maxCoord])
+      .domain(xDomain)
       .range([0, innerWidth]);
     
     const yScale = d3.scaleLinear()
-      .domain([-maxCoord, maxCoord])
+      .domain(yDomain)
       .range([innerHeight, 0]);
-    
-    // Use the zoom-enabled main group (g) for all drawing operations
     
     // Draw grid if enabled
     if (settings.showGrid) {
-      const gridStep = getNiceTickStep(maxCoord * 2, 10);
-      const gridLines = d3.range(-maxCoord, maxCoord + gridStep, gridStep);
+      const gridStep = getNiceTickStep(visibleRange * 2, 10);
+      const gridGroup = g.append('g').attr('class', 'grid');
       
-      g.append('g')
-        .selectAll('line')
-        .data(gridLines)
-        .enter()
-        .append('line')
-        .attr('x1', d => xScale(d))
-        .attr('y1', 0)
-        .attr('x2', d => xScale(d))
-        .attr('y2', innerHeight)
-        .attr('stroke', '#e0e0e0')
-        .attr('stroke-width', 0.5);
+      const xStart = Math.ceil(xDomain[0] / gridStep) * gridStep;
+      for (let x = xStart; x < xDomain[1]; x += gridStep) {
+        gridGroup.append('line')
+          .attr('x1', xScale(x)).attr('y1', 0)
+          .attr('x2', xScale(x)).attr('y2', innerHeight)
+          .attr('stroke', '#e0e0e0')
+          .attr('stroke-width', Math.abs(x) < 1e-10 ? 2 : 0.5)
+          .attr('opacity', Math.abs(x) < 1e-10 ? 0.8 : 0.3);
+      }
       
-      g.append('g')
-        .selectAll('line')
-        .data(gridLines)
-        .enter()
-        .append('line')
-        .attr('x1', 0)
-        .attr('y1', d => yScale(d))
-        .attr('x2', innerWidth)
-        .attr('y2', d => yScale(d))
-        .attr('stroke', '#e0e0e0')
-        .attr('stroke-width', 0.5);
+      const yStart = Math.ceil(yDomain[0] / gridStep) * gridStep;
+      for (let y = yStart; y < yDomain[1]; y += gridStep) {
+        gridGroup.append('line')
+          .attr('x1', 0).attr('y1', yScale(y))
+          .attr('x2', innerWidth).attr('y2', yScale(y))
+          .attr('stroke', '#e0e0e0')
+          .attr('stroke-width', Math.abs(y) < 1e-10 ? 2 : 0.5)
+          .attr('opacity', Math.abs(y) < 1e-10 ? 0.8 : 0.3);
+      }
     }
     
     // Draw axes if enabled
@@ -357,11 +353,70 @@ const EigenvalueCanvas2D: React.FC<EigenvalueCanvas2DProps> = ({ width, height }
         .text('Transformed vectors');
     }
     
-  }, [matrix2D, width, height, margin, settings, eigenvalueSettings, legendPosition]);
+  }, [matrix2D, width, height, margin, settings, eigenvalueSettings, legendPosition, scale, offset]);
+  
+  // Pan and zoom handlers
+  const [dragging, setDragging] = useState(false);
+  const dragStart = useRef<{ x: number; y: number; offset: { x: number; y: number } } | null>(null);
+  
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    
+    const mouseX = e.clientX - rect.left - margin.left;
+    const mouseY = e.clientY - rect.top - margin.top;
+    const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+    const newScale = Math.max(0.1, Math.min(10, scale * zoomFactor));
+    
+    const baseRange = 10;
+    const svgX = (mouseX / innerWidth) * (2 * baseRange / scale) + offset.x - baseRange / scale;
+    const svgY = (1 - mouseY / innerHeight) * (2 * baseRange / scale) + offset.y - baseRange / scale;
+    const newOffset = {
+      x: svgX - (svgX - offset.x) * (scale / newScale),
+      y: svgY - (svgY - offset.y) * (scale / newScale),
+    };
+    
+    onScaleChange(newScale);
+    onPanChange(newOffset);
+  };
+  
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setDragging(true);
+    dragStart.current = { x: e.clientX, y: e.clientY, offset: { ...offset } };
+  };
+  
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!dragging || !dragStart.current) return;
+    
+    const baseRange = 10;
+    const dx = (e.clientX - dragStart.current.x) / innerWidth * (2 * baseRange / scale);
+    const dy = (e.clientY - dragStart.current.y) / innerHeight * (2 * baseRange / scale);
+    
+    onPanChange({
+      x: dragStart.current.offset.x - dx,
+      y: dragStart.current.offset.y + dy
+    });
+  };
+  
+  const handleMouseUp = () => {
+    setDragging(false);
+    dragStart.current = null;
+  };
   
   return (
     <div className="eigenvalue-canvas-2d bg-white rounded-lg shadow-lg">
-      <svg ref={svgRef} className="w-full h-full"></svg>
+      <div
+        className="w-full h-full"
+        style={{ cursor: dragging ? 'grabbing' : 'grab' }}
+        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      >
+        <svg ref={svgRef} className="w-full h-full"></svg>
+      </div>
     </div>
   );
 };

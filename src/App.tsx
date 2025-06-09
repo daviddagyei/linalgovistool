@@ -249,7 +249,7 @@ const AppContent: React.FC = () => {
         return <SubspaceCanvas2D width={width} height={height} scale={scale} offset={offset} onPanChange={setOffset} onScaleChange={setScale} />;
       }
       if (tool === 'eigenvalue') {
-        return <EigenvalueCanvas2D width={width} height={height} />;
+        return <EigenvalueCanvas2D width={width} height={height} scale={scale} offset={offset} onPanChange={setOffset} onScaleChange={setScale} />;
       }
     } else {
       if (tool === 'vector' || tool === 'basis') {
@@ -268,9 +268,9 @@ const AppContent: React.FC = () => {
   };
 
   // Zoom/pan controls only affect 2D tools that support zoom
-  const showCanvasControls = mode === '2d' && (tool === 'vector' || tool === 'basis' || tool === 'matrix' || tool === 'subspace');
-  const handleZoomIn = () => setScale(s => s * 1.0);
-  const handleZoomOut = () => setScale(s => s / 1.0);
+  const showCanvasControls = mode === '2d' && (tool === 'vector' || tool === 'basis' || tool === 'matrix' || tool === 'subspace' || tool === 'eigenvalue');
+  const handleZoomIn = () => setScale(s => Math.min(10, s * 1.1));
+  const handleZoomOut = () => setScale(s => Math.max(0.1, s * 0.9));
   const handleReset = () => { setScale(1); setOffset({ x: 0, y: 0 }); };
 
   return (

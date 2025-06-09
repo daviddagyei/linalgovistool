@@ -558,9 +558,9 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
   
   return (
     <div className="relative">
-      {/* Enhanced Control Panel */}
+      {/* Span Controls */}
       <div className="absolute top-4 left-4 z-10 bg-white/90 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-gray-200/50">
-        <h3 className="text-sm font-semibold text-gray-800 mb-3">⚡ Fast Animated Spans</h3>
+        <h3 className="text-sm font-semibold text-gray-800 mb-3">Vector Spans</h3>
         <div className="space-y-2">
           {vectors2D.map((vector, index) => (
             <button
@@ -586,17 +586,6 @@ const SubspaceCanvas2D: React.FC<SubspaceCanvas2DProps> = ({
               }} />
             </button>
           ))}
-        </div>
-        
-        <div className="mt-4 pt-3 border-t border-gray-200">
-          <div className="text-xs text-gray-600">
-            <div className="font-medium mb-1">⚡ Optimized Performance:</div>
-            <div className="space-y-1">
-              <div>• 30fps smooth animation</div>
-              <div>• Reduced dot count for speed</div>
-              <div>• Efficient rendering pipeline</div>
-            </div>
-          </div>
         </div>
       </div>
       
