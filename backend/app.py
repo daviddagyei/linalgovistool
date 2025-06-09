@@ -321,11 +321,6 @@ def get_matrix_presets():
     }
     return jsonify(presets)
 
-@app.route('/api/health')
-def health_check():
-    """Health check endpoint for Render"""
-    return jsonify({'status': 'healthy', 'service': 'linalgovistool-backend'})
-
 @app.route('/')
 def serve_frontend():
     """Serve the React frontend"""

@@ -29,6 +29,7 @@
 ### Prerequisites
 
 - **Node.js** (v16 or higher)
+- **Python 3.8+** with pip
 - **npm** or **yarn**
 - Modern web browser with WebGL support
 
@@ -40,17 +41,39 @@
    cd linalgovistool
    ```
 
-2. **Install dependencies**
+2. **Install frontend dependencies**
    ```bash
    npm install
    ```
 
-3. **Start the development server**
+3. **Set up Python backend**
    ```bash
-   npm run dev
+   # Create virtual environment (recommended)
+   python3 -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   
+   # Install Python dependencies
+   pip install -r backend/requirements.txt
    ```
 
-4. **Open your browser**
+4. **Start the development servers**
+   
+   **Option A: Run both servers simultaneously (recommended)**
+   ```bash
+   # Terminal 1: Start the backend API server
+   source venv/bin/activate  # Activate virtual environment
+   python3 backend/app.py
+   
+   # Terminal 2: Start the frontend development server
+   npm run dev
+   ```
+   
+   **Option B: Use the development script**
+   ```bash
+   # Coming soon: npm run dev:fullstack
+   ```
+
+5. **Open your browser**
    Navigate to `http://localhost:5173` to start exploring!
 
 ### Building for Production
