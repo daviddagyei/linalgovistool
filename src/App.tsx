@@ -116,7 +116,27 @@ const CanvasControls: React.FC<{
 
 // Main App Content
 const AppContent: React.FC = () => {
-  const { mode, tool } = useVisualizer();
+  const { mode, tool, loadSharedState } = useVisualizer();
+  
+  // Handle shared state from URL parameters
+  useEffect(() => {
+    const handleSharedState = async () => {
+      try {
+        const { parseSharedStateFromUrl, clearShareFromUrl } = await import('./utils/shareUtils');
+        const sharedState = parseSharedStateFromUrl();
+        if (sharedState) {
+          loadSharedState(sharedState);
+          // Clean up URL after loading
+          clearShareFromUrl();
+        }
+      } catch (error) {
+        console.error('Error loading shared state:', error);
+      }
+    };
+    
+    handleSharedState();
+  }, [loadSharedState]);
+  
   const { width, height } = useResponsiveCanvasSize();
   // For all 2D tools that support zoom/pan:
   const [scale, setScale] = useState(1);

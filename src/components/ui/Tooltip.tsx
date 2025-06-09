@@ -25,15 +25,9 @@ const Tooltip: React.FC<TooltipProps> = ({
   const triggerRef = useRef<HTMLDivElement>(null);
 
   const calculatePosition = () => {
-    if (!triggerRef.current) {
-      console.log('No trigger ref for tooltip:', content);
-      return;
-    }
+    if (!triggerRef.current) return;
 
-    console.log('Calculating position for tooltip:', content);
     const triggerRect = triggerRef.current.getBoundingClientRect();
-    console.log('Trigger rect:', triggerRect);
-    
     const tooltipWidth = 300; // Max width
     const tooltipHeight = description ? 80 : 50; // Estimated height
     const gap = 8;
@@ -93,26 +87,22 @@ const Tooltip: React.FC<TooltipProps> = ({
     left = Math.max(10, Math.min(left, window.innerWidth - tooltipWidth - 10));
     top = Math.max(10, Math.min(top, window.innerHeight - tooltipHeight - 10));
 
-    console.log('Final tooltip position:', { top, left, newPosition });
     setTooltipPosition({ top, left });
     setActualPosition(newPosition);
   };
 
   const showTooltip = () => {
-    console.log('Tooltip showTooltip called for:', content);
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
     
     timeoutRef.current = window.setTimeout(() => {
-      console.log('Tooltip showing:', content);
       calculatePosition();
       setIsVisible(true);
     }, delay);
   };
 
   const hideTooltip = () => {
-    console.log('Tooltip hideTooltip called for:', content);
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }

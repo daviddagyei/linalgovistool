@@ -1,13 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Github, BookOpen, Share2, Sigma } from 'lucide-react';
 import Tooltip from '../ui/Tooltip';
+import DocumentationModal from '../ui/DocumentationModal';
+import ShareModal from '../ui/ShareModal';
+import { useVisualizer } from '../../context/VisualizerContext';
 
 const Header: React.FC = () => {
+  const [isDocumentationOpen, setIsDocumentationOpen] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
+  const { getShareableState, loadSharedState } = useVisualizer();
+
   return (
     <header className="bg-gradient-to-r from-blue-700 to-blue-900 text-white py-3 px-4 shadow-md">
       <div className="container mx-auto flex justify-between items-center">
         <Tooltip 
-          content="Linear Algebra Visualizer" 
+          content="Linalgovistool" 
           description="Interactive tool for visualizing vectors, matrices, transformations, and linear algebra concepts"
           position="bottom"
         >
@@ -15,7 +22,7 @@ const Header: React.FC = () => {
             <div className="flex items-center justify-center bg-white bg-opacity-20 rounded-lg w-8 h-8">
               <Sigma className="w-5 h-5" />
             </div>
-            <h1 className="text-lg font-bold">Linear Algebra Visualizer</h1>
+            <h1 className="text-lg font-bold">Linalgovistool</h1>
           </div>
         </Tooltip>
         
@@ -27,7 +34,10 @@ const Header: React.FC = () => {
                 description="Access tutorials and guides for linear algebra concepts"
                 position="bottom"
               >
-                <button className="flex items-center p-1.5 rounded hover:bg-white hover:bg-opacity-10 transition-colors">
+                <button 
+                  onClick={() => setIsDocumentationOpen(true)}
+                  className="flex items-center p-1.5 rounded hover:bg-white hover:bg-opacity-10 transition-colors"
+                >
                   <BookOpen size={16} className="mr-1" />
                   <span className="hidden sm:inline text-sm">Docs</span>
                 </button>
@@ -39,7 +49,10 @@ const Header: React.FC = () => {
                 description="Share your current visualization with others"
                 position="bottom"
               >
-                <button className="flex items-center p-1.5 rounded hover:bg-white hover:bg-opacity-10 transition-colors">
+                <button 
+                  onClick={() => setIsShareOpen(true)}
+                  className="flex items-center p-1.5 rounded hover:bg-white hover:bg-opacity-10 transition-colors"
+                >
                   <Share2 size={16} className="mr-1" />
                   <span className="hidden sm:inline text-sm">Share</span>
                 </button>
@@ -65,6 +78,18 @@ const Header: React.FC = () => {
           </ul>
         </nav>
       </div>
+      
+      <DocumentationModal 
+        isOpen={isDocumentationOpen}
+        onClose={() => setIsDocumentationOpen(false)}
+      />
+      
+      <ShareModal 
+        isOpen={isShareOpen}
+        onClose={() => setIsShareOpen(false)}
+        shareData={getShareableState()}
+        onImportState={loadSharedState}
+      />
     </header>
   );
 };

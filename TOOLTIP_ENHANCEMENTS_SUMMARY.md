@@ -1,7 +1,7 @@
 # Tooltip System Enhancements - Complete
 
 ## Overview
-The Linear Algebra Visualizer tooltip system has been completely overhauled to ensure modern, glassmorphic tooltips appear correctly and are fully visible when hovering over tool icons and controls.
+The Linalgovistool tooltip system has been completely overhauled to ensure modern, glassmorphic tooltips appear correctly and are fully visible when hovering over tool icons and controls.
 
 ## ✅ Issues Fixed
 

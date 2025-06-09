@@ -1,4 +1,4 @@
-# Enhanced Tooltip System for Linear Algebra Visualizer
+# Enhanced Tooltip System for Linalgovistool
 
 ## Overview
 Added a comprehensive modernistic tooltip system that provides helpful information when users hover over tools and interface elements.

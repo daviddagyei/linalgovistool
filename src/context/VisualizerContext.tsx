@@ -17,6 +17,11 @@ import {
 import { 
   transitionManager 
 } from '../utils/animationUtils';
+import { 
+  serializeState, 
+  deserializeState, 
+  validateSharedState 
+} from '../utils/shareUtils';
 
 interface VisualizerContextType {
   mode: VisualizationMode;
@@ -85,6 +90,10 @@ interface VisualizerContextType {
   
   guessEigenvalue: number | null;
   setGuessEigenvalue: (value: number | null) => void;
+  
+  // Share functionality
+  getShareableState: () => any;
+  loadSharedState: (sharedState: any) => boolean;
 }
 
 const defaultMatrix2D: Matrix2D = [
@@ -337,6 +346,48 @@ export const VisualizerProvider: React.FC<{ children: ReactNode }> = ({ children
     };
   }, [basisSettings3D]);
 
+  // Share functionality
+  const getShareableState = useCallback(() => {
+    return serializeState({
+      mode,
+      tool,
+      vectors2D,
+      vectors3D,
+      matrix2D,
+      matrix3D,
+      settings,
+      subspaceSettings,
+      basisSettings,
+      basisSettings3D,
+      eigenvalueSettings
+    });
+  }, [mode, tool, vectors2D, vectors3D, matrix2D, matrix3D, settings, subspaceSettings, basisSettings, basisSettings3D, eigenvalueSettings]);
+
+  const loadSharedState = useCallback((sharedState: any) => {
+    if (!validateSharedState(sharedState)) {
+      return false;
+    }
+
+    try {
+      return deserializeState(sharedState, {
+        setMode,
+        setTool,
+        setVectors2D,
+        setVectors3D,
+        setMatrix2D,
+        setMatrix3D,
+        updateSettings,
+        updateSubspaceSettings,
+        updateBasisSettings,
+        updateBasisSettings3D,
+        updateEigenvalueSettings
+      });
+    } catch (error) {
+      console.error('Error loading shared state:', error);
+      return false;
+    }
+  }, [setMode, setTool, setVectors2D, setVectors3D, setMatrix2D, setMatrix3D, updateSettings, updateSubspaceSettings, updateBasisSettings, updateBasisSettings3D, updateEigenvalueSettings]);
+
   // Memoize context value to prevent unnecessary re-renders
   const contextValue = useMemo(() => ({
     mode,
@@ -385,14 +436,16 @@ export const VisualizerProvider: React.FC<{ children: ReactNode }> = ({ children
     isEigenvectorGuess,
     setIsEigenvectorGuess,
     guessEigenvalue,
-    setGuessEigenvalue
+    setGuessEigenvalue,
+    getShareableState,
+    loadSharedState
   }), [
     mode, tool, vectors2D, vectors3D, matrix2D, matrix3D, settings, 
     subspaceSettings, basisSettings, basisSettings3D, eigenvalues2D, eigenvalues3D,
     eigenvalueSettings, matrixPresets, selectedPreset, guessVector, transformedGuessVector,
     isEigenvectorGuess, guessEigenvalue, addVector2D, addVector3D, updateSettings,
     updateSubspaceSettings, updateBasisSettings, updateBasisSettings3D, updateEigenvalueSettings,
-    changeBasis, changeBasisInverse, changeBasis3D, changeBasisInverse3D
+    changeBasis, changeBasisInverse, changeBasis3D, changeBasisInverse3D, getShareableState, loadSharedState
   ]);
 
   return (
