@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Compass, Eye, EyeOff, RotateCcw } from 'lucide-react';
 import { useVisualizer } from '../../context/VisualizerContext';
 import Modal from '../ui/Modal';
+import Tooltip from '../ui/Tooltip';
 
 const CompactBasisControls: React.FC = () => {
   const { 
@@ -38,48 +39,68 @@ const CompactBasisControls: React.FC = () => {
     <div className="space-y-4">
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-2">
-        <button
-          onClick={() => setIsSettingsModalOpen(true)}
-          className="flex items-center justify-center p-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg border border-indigo-200 transition-colors"
+        <Tooltip 
+          content="Basis Settings" 
+          description="Configure custom basis vectors and coordinate display options"
         >
-          <Compass className="w-4 h-4 mr-2" />
-          Settings
-        </button>
+          <button
+            onClick={() => setIsSettingsModalOpen(true)}
+            className="flex items-center justify-center p-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg border border-indigo-200 transition-colors"
+          >
+            <Compass className="w-4 h-4 mr-2" />
+            Settings
+          </button>
+        </Tooltip>
         
-        <button
-          onClick={resetToStandard}
-          className="flex items-center justify-center p-3 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg border border-gray-200 transition-colors"
+        <Tooltip 
+          content="Reset to Standard" 
+          description="Reset to the standard orthonormal basis (i, j, k vectors)"
         >
-          <RotateCcw className="w-4 h-4 mr-2" />
-          Reset
-        </button>
+          <button
+            onClick={resetToStandard}
+            className="flex items-center justify-center p-3 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg border border-gray-200 transition-colors"
+          >
+            <RotateCcw className="w-4 h-4 mr-2" />
+            Reset
+          </button>
+        </Tooltip>
       </div>
 
       {/* Quick Toggles */}
       <div className="space-y-2">
-        <button
-          onClick={toggleCustomBasis}
-          className={`w-full flex items-center justify-between p-2 rounded-lg border transition-colors ${
-            basisSettings.customBasis
-              ? 'bg-green-50 border-green-200 text-green-700'
-              : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
-          }`}
+        <Tooltip 
+          content="Custom Basis Toggle" 
+          description="Switch between standard basis and custom basis vectors"
         >
-          <span className="text-sm font-medium">Custom Basis</span>
-          {basisSettings.customBasis ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-        </button>
+          <button
+            onClick={toggleCustomBasis}
+            className={`w-full flex items-center justify-between p-2 rounded-lg border transition-colors ${
+              basisSettings.customBasis
+                ? 'bg-green-50 border-green-200 text-green-700'
+                : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            <span className="text-sm font-medium">Custom Basis</span>
+            {basisSettings.customBasis ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+          </button>
+        </Tooltip>
 
-        <button
-          onClick={toggleCoordinates}
-          className={`w-full flex items-center justify-between p-2 rounded-lg border transition-colors ${
-            basisSettings.showCoordinates
-              ? 'bg-purple-50 border-purple-200 text-purple-700'
-              : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
-          }`}
+        <Tooltip 
+          content="Coordinate Display" 
+          description="Show vector coordinates in the current basis system"
         >
-          <span className="text-sm font-medium">Show Coordinates</span>
-          {basisSettings.showCoordinates ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-        </button>
+          <button
+            onClick={toggleCoordinates}
+            className={`w-full flex items-center justify-between p-2 rounded-lg border transition-colors ${
+              basisSettings.showCoordinates
+                ? 'bg-purple-50 border-purple-200 text-purple-700'
+                : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            <span className="text-sm font-medium">Show Coordinates</span>
+            {basisSettings.showCoordinates ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+          </button>
+        </Tooltip>
       </div>
 
       {/* Summary Info */}

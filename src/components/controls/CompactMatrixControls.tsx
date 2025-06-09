@@ -3,6 +3,7 @@ import { Edit3, RotateCcw, Calculator } from 'lucide-react';
 import { useVisualizer } from '../../context/VisualizerContext';
 import { Matrix2D, Matrix3D } from '../../types';
 import Modal from '../ui/Modal';
+import Tooltip from '../ui/Tooltip';
 
 const CompactMatrixControls: React.FC = () => {
   const { 
@@ -87,30 +88,36 @@ const CompactMatrixControls: React.FC = () => {
     <div className="space-y-4">
       {/* Quick Action Buttons */}
       <div className="grid grid-cols-2 gap-2">
-        <button
-          onClick={handleMatrixEdit}
-          className="flex items-center justify-center p-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg border border-blue-200 transition-colors"
-        >
-          <Edit3 className="w-4 h-4 mr-2" />
-          Edit Matrix
-        </button>
+        <Tooltip content="Edit Matrix" description="Edit the matrix values manually. Useful for custom transformations." position="top">
+          <button
+            onClick={handleMatrixEdit}
+            className="flex items-center justify-center p-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg border border-blue-200 transition-colors"
+          >
+            <Edit3 className="w-4 h-4 mr-2" />
+            Edit Matrix
+          </button>
+        </Tooltip>
         
-        <button
-          onClick={() => setIsPresetsModalOpen(true)}
-          className="flex items-center justify-center p-3 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg border border-green-200 transition-colors"
-        >
-          <Calculator className="w-4 h-4 mr-2" />
-          Presets
-        </button>
+        <Tooltip content="Presets" description="Apply a preset transformation matrix (e.g., rotation, scaling, shear)." position="top">
+          <button
+            onClick={() => setIsPresetsModalOpen(true)}
+            className="flex items-center justify-center p-3 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg border border-green-200 transition-colors"
+          >
+            <Calculator className="w-4 h-4 mr-2" />
+            Presets
+          </button>
+        </Tooltip>
       </div>
 
-      <button
-        onClick={handleReset}
-        className="w-full flex items-center justify-center p-2 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg border border-gray-200 transition-colors text-sm"
-      >
-        <RotateCcw className="w-4 h-4 mr-2" />
-        Reset to Identity
-      </button>
+      <Tooltip content="Reset to Identity" description="Reset the matrix to the identity matrix (no transformation)." position="top">
+        <button
+          onClick={handleReset}
+          className="w-full flex items-center justify-center p-2 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg border border-gray-200 transition-colors text-sm"
+        >
+          <RotateCcw className="w-4 h-4 mr-2" />
+          Reset to Identity
+        </button>
+      </Tooltip>
 
       {/* Current Matrix Display */}
       <div className="space-y-2">

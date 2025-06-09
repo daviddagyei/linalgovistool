@@ -4,6 +4,7 @@ import { useVisualizer } from '../../context/VisualizerContext';
 import { Vector2D, Vector3D } from '../../types';
 import { addVectors2D, addVectors3D, scaleVector2D, scaleVector3D, subtractVectors2D, subtractVectors3D } from '../../utils/mathUtils';
 import Modal from '../ui/Modal';
+import Tooltip from '../ui/Tooltip';
 
 type ExpressionToken = {
   type: 'vector' | 'operator' | 'scalar' | 'parenthesis';
@@ -244,30 +245,48 @@ const CompactVectorControls: React.FC = () => {
     <div className="space-y-4">
       {/* Quick Action Buttons */}
       <div className="grid grid-cols-2 gap-2">
-        <button
-          onClick={() => setIsAddModalOpen(true)}
-          className="flex items-center justify-center p-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg border border-blue-200 transition-colors"
+        <Tooltip 
+          content="Add Vector" 
+          description="Create a new vector by specifying its components"
+          position="top"
         >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Vector
-        </button>
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="flex items-center justify-center p-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg border border-blue-200 transition-colors"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Vector
+          </button>
+        </Tooltip>
         
-        <button
-          onClick={() => setIsOperationsModalOpen(true)}
-          className="flex items-center justify-center p-3 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg border border-green-200 transition-colors"
+        <Tooltip 
+          content="Expression Builder" 
+          description="Create complex vector expressions using addition, subtraction, and scalar multiplication"
+          position="top"
         >
-          <Calculator className="w-4 h-4 mr-2" />
-          Expression Builder
-        </button>
+          <button
+            onClick={() => setIsOperationsModalOpen(true)}
+            className="flex items-center justify-center p-3 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg border border-green-200 transition-colors"
+          >
+            <Calculator className="w-4 h-4 mr-2" />
+            Expression Builder
+          </button>
+        </Tooltip>
       </div>
 
-      <button
-        onClick={handleReset}
-        className="w-full flex items-center justify-center p-2 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg border border-gray-200 transition-colors text-sm"
+      <Tooltip 
+        content="Reset Vectors" 
+        description="Reset all vectors to the default standard basis vectors"
+        position="top"
       >
-        <RotateCcw className="w-4 h-4 mr-2" />
-        Reset to Default
-      </button>
+        <button
+          onClick={handleReset}
+          className="w-full flex items-center justify-center p-2 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg border border-gray-200 transition-colors text-sm"
+        >
+          <RotateCcw className="w-4 h-4 mr-2" />
+          Reset to Default
+        </button>
+      </Tooltip>
 
       {/* Current Vectors List */}
       <div className="space-y-2">

@@ -3,6 +3,7 @@ import { Eye, EyeOff, Layers, Info, Zap, RotateCcw } from 'lucide-react';
 import { useVisualizer } from '../../context/VisualizerContext';
 import { isLinearlyIndependent2D, isLinearlyIndependent3D, magnitude2D, magnitude3D } from '../../utils/mathUtils';
 import Modal from '../ui/Modal';
+import Tooltip from '../ui/Tooltip';
 
 const CompactSubspaceControls: React.FC = () => {
   const { 
@@ -86,44 +87,64 @@ const CompactSubspaceControls: React.FC = () => {
     <div className="space-y-4">
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-2">
-        <button
-          onClick={() => setIsSpanModalOpen(true)}
-          className={`flex items-center justify-center p-3 rounded-lg border transition-all duration-200 ${
-            activeSpans > 0 
-              ? 'bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200 text-purple-700 shadow-sm'
-              : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-200'
-          }`}
+        <Tooltip 
+          content="Vector Spans" 
+          description="View and toggle individual vector spans to visualize subspaces"
         >
-          <Layers className="w-4 h-4 mr-2" />
-          Spans ({activeSpans})
-        </button>
+          <button
+            onClick={() => setIsSpanModalOpen(true)}
+            className={`flex items-center justify-center p-3 rounded-lg border transition-all duration-200 ${
+              activeSpans > 0 
+                ? 'bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200 text-purple-700 shadow-sm'
+                : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-200'
+            }`}
+          >
+            <Layers className="w-4 h-4 mr-2" />
+            Spans ({activeSpans})
+          </button>
+        </Tooltip>
         
-        <button
-          onClick={() => setIsAnalysisModalOpen(true)}
-          className="flex items-center justify-center p-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg border border-indigo-200 transition-colors"
+        <Tooltip 
+          content="Subspace Analysis" 
+          description="View detailed analysis of linear independence, dimension, and geometric interpretation"
         >
-          <Info className="w-4 h-4 mr-2" />
-          Analysis
-        </button>
+          <button
+            onClick={() => setIsAnalysisModalOpen(true)}
+            className="flex items-center justify-center p-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg border border-indigo-200 transition-colors"
+          >
+            <Info className="w-4 h-4 mr-2" />
+            Analysis
+          </button>
+        </Tooltip>
       </div>
 
       {/* Quick Controls */}
       <div className="grid grid-cols-2 gap-2">
-        <button
-          onClick={showAllSpans}
-          className="flex items-center justify-center p-2 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg border border-green-200 transition-colors text-sm"
+        <Tooltip 
+          content="Show All Spans" 
+          description="Display all vector spans, plane, and basis vectors at once"
         >
-          <Zap className="w-4 h-4 mr-1" />
-          Show All
-        </button>
+          <button
+            onClick={showAllSpans}
+            className="flex items-center justify-center p-2 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg border border-green-200 transition-colors text-sm"
+          >
+            <Zap className="w-4 h-4 mr-1" />
+            Show All
+          </button>
+        </Tooltip>
         
-        <button
-          onClick={resetSpans}
-          className="flex items-center justify-center p-2 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg border border-gray-200 transition-colors text-sm"
+        <Tooltip 
+          content="Reset All" 
+          description="Hide all spans, planes, and basis vectors"
         >
-          <RotateCcw className="w-4 h-4 mr-1" />
-          Reset
-        </button>
+          <button
+            onClick={resetSpans}
+            className="flex items-center justify-center p-2 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg border border-gray-200 transition-colors text-sm"
+          >
+            <RotateCcw className="w-4 h-4 mr-1" />
+            Reset
+          </button>
+        </Tooltip>
       </div>
 
       {/* Space Toggles */}

@@ -12,6 +12,7 @@ import EigenvalueCanvas2D from './components/visualizations/twoDimensional/Eigen
 import EigenvalueCanvas3D from './components/visualizations/threeDimensional/EigenvalueCanvas3D';
 import { VisualizerProvider, useVisualizer } from './context/VisualizerContext';
 import { ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import Tooltip from './components/ui/Tooltip';
 
 // Hook for responsive canvas dimensions
 const useResponsiveCanvasSize = () => {
@@ -56,42 +57,59 @@ const CanvasControls: React.FC<{
 }> = ({ onZoomIn, onZoomOut, onReset }) => {
   return (
     <div className="absolute top-4 right-4 flex space-x-2 z-10">
-      <button
-        onClick={(e) => {
-          console.log('Zoom in button clicked!');
-          e.preventDefault();
-          e.stopPropagation();
-          onZoomIn();
-        }}
-        className="p-2 rounded-lg bg-white/20 backdrop-blur-sm text-gray-700 hover:bg-white/30 border-2 border-gray-300/50 shadow-lg"
-        title="Zoom in"
+      <Tooltip 
+        content="Zoom In" 
+        description="Zoom into the visualization for a closer view"
+        position="bottom"
       >
-        <ZoomIn size={20} />
-      </button>
-      <button
-        onClick={(e) => {
-          console.log('Zoom out button clicked!');
-          e.preventDefault();
-          e.stopPropagation();
-          onZoomOut();
-        }}
-        className="p-2 rounded-lg bg-white/20 backdrop-blur-sm text-gray-700 hover:bg-white/30 border-2 border-gray-300/50 shadow-lg"
-        title="Zoom out"
+        <button
+          onClick={(e) => {
+            console.log('Zoom in button clicked!');
+            e.preventDefault();
+            e.stopPropagation();
+            onZoomIn();
+          }}
+          className="p-2 rounded-lg bg-white/20 backdrop-blur-sm text-gray-700 hover:bg-white/30 border-2 border-gray-300/50 shadow-lg"
+        >
+          <ZoomIn size={20} />
+        </button>
+      </Tooltip>
+
+      <Tooltip 
+        content="Zoom Out" 
+        description="Zoom out from the visualization for a wider view"
+        position="bottom"
       >
-        <ZoomOut size={20} />
-      </button>
-      <button
-        onClick={(e) => {
-          console.log('Reset button clicked!');
-          e.preventDefault();
-          e.stopPropagation();
-          onReset();
-        }}
-        className="p-2 rounded-lg bg-white/2 backdrop-blur-sm text-gray-700 hover:bg-white/5 border-2 border-gray-300/50 shadow-lg"
-        title="Reset view"
+        <button
+          onClick={(e) => {
+            console.log('Zoom out button clicked!');
+            e.preventDefault();
+            e.stopPropagation();
+            onZoomOut();
+          }}
+          className="p-2 rounded-lg bg-white/20 backdrop-blur-sm text-gray-700 hover:bg-white/30 border-2 border-gray-300/50 shadow-lg"
+        >
+          <ZoomOut size={20} />
+        </button>
+      </Tooltip>
+
+      <Tooltip 
+        content="Reset View" 
+        description="Reset zoom and pan to the default view position"
+        position="bottom"
       >
-        <RotateCcw size={20} />
-      </button>
+        <button
+          onClick={(e) => {
+            console.log('Reset button clicked!');
+            e.preventDefault();
+            e.stopPropagation();
+            onReset();
+          }}
+          className="p-2 rounded-lg bg-white/2 backdrop-blur-sm text-gray-700 hover:bg-white/5 border-2 border-gray-300/50 shadow-lg"
+        >
+          <RotateCcw size={20} />
+        </button>
+      </Tooltip>
     </div>
   );
 };

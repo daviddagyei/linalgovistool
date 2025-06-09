@@ -6,6 +6,7 @@ import MatrixControls from './MatrixControls';
 import SubspaceControls from './SubspaceControls';
 import BasisControls from './BasisControls';
 import EigenvalueControls from './EigenvalueControls';
+import Tooltip from '../ui/Tooltip';
 
 const ControlPanel: React.FC = () => {
   const { 
@@ -70,117 +71,163 @@ const ControlPanel: React.FC = () => {
             {/* Left side - Mode toggle and tools */}
             <div className="flex items-center space-x-2">
               {/* Mode Toggle */}
-              <button
-                onClick={() => setMode(mode === '2d' ? '3d' : '2d')}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                  mode === '2d'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'bg-orange-100 text-orange-700'
-                }`}
+              <Tooltip 
+                content={`${mode === '2d' ? '2D' : '3D'} Mode`}
+                description={`Switch to ${mode === '2d' ? '3D' : '2D'} visualization mode for ${mode === '2d' ? 'three-dimensional' : 'two-dimensional'} linear algebra`}
+                position="top"
               >
-                {mode.toUpperCase()}
-              </button>
+                <button
+                  onClick={() => setMode(mode === '2d' ? '3d' : '2d')}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                    mode === '2d'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-orange-100 text-orange-700'
+                  }`}
+                >
+                  {mode.toUpperCase()}
+                </button>
+              </Tooltip>
 
               {/* Tool buttons */}
               <div className="flex items-center space-x-1">
-                <button
-                  onClick={() => {
-                    setTool('vector');
-                    setShowControls(true);
-                  }}
-                  className={`p-1.5 rounded-lg transition-colors ${
-                    tool === 'vector'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                  title="Vectors"
+                <Tooltip 
+                  content="Vector Tool" 
+                  description="Visualize vectors, add/remove vectors, and perform vector operations like addition and scalar multiplication"
+                  position="top"
                 >
-                  <Box size={20} />
-                </button>
-                <button
-                  onClick={() => {
-                    setTool('matrix');
-                    setShowControls(true);
-                  }}
-                  className={`p-1.5 rounded-lg transition-colors ${
-                    tool === 'matrix'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                  title="Matrix Transformations"
+                  <button
+                    onClick={() => {
+                      setTool('vector');
+                      setShowControls(true);
+                    }}
+                    className={`p-1.5 rounded-lg transition-colors ${
+                      tool === 'vector'
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Box size={20} />
+                  </button>
+                </Tooltip>
+
+                <Tooltip 
+                  content="Matrix Transformations" 
+                  description="Explore linear transformations using matrices. Adjust matrix values and see how they transform space"
+                  position="top"
                 >
-                  <Layers size={20} />
-                </button>
-                <button
-                  onClick={() => {
-                    setTool('subspace');
-                    setShowControls(true);
-                  }}
-                  className={`p-1.5 rounded-lg transition-colors ${
-                    tool === 'subspace'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                  title="Subspaces"
+                  <button
+                    onClick={() => {
+                      setTool('matrix');
+                      setShowControls(true);
+                    }}
+                    className={`p-1.5 rounded-lg transition-colors ${
+                      tool === 'matrix'
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Layers size={20} />
+                  </button>
+                </Tooltip>
+
+                <Tooltip 
+                  content="Subspaces" 
+                  description="Visualize vector spans, linear independence, and subspace properties like lines and planes"
+                  position="top"
                 >
-                  <Workflow size={20} />
-                </button>
-                <button
-                  onClick={() => {
-                    setTool('eigenvalue');
-                    setShowControls(true);
-                  }}
-                  className={`p-1.5 rounded-lg transition-colors ${
-                    tool === 'eigenvalue'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                  title="Eigenvalues"
+                  <button
+                    onClick={() => {
+                      setTool('subspace');
+                      setShowControls(true);
+                    }}
+                    className={`p-1.5 rounded-lg transition-colors ${
+                      tool === 'subspace'
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Workflow size={20} />
+                  </button>
+                </Tooltip>
+
+                <Tooltip 
+                  content="Eigenvalues & Eigenvectors" 
+                  description="Analyze eigenvalues and eigenvectors of matrices. See special directions that only get scaled"
+                  position="top"
                 >
-                  <Activity size={20} />
-                </button>
-                <button
-                  onClick={() => {
-                    setTool('basis');
-                    setShowControls(true);
-                  }}
-                  className={`p-1.5 rounded-lg transition-colors ${
-                    tool === 'basis'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                  title="Basis"
+                  <button
+                    onClick={() => {
+                      setTool('eigenvalue');
+                      setShowControls(true);
+                    }}
+                    className={`p-1.5 rounded-lg transition-colors ${
+                      tool === 'eigenvalue'
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Activity size={20} />
+                  </button>
+                </Tooltip>
+
+                <Tooltip 
+                  content="Basis Vectors" 
+                  description="Work with different coordinate systems and basis vectors. Change how we measure and represent vectors"
+                  position="top"
                 >
-                  <Compass size={20} />
-                </button>
+                  <button
+                    onClick={() => {
+                      setTool('basis');
+                      setShowControls(true);
+                    }}
+                    className={`p-1.5 rounded-lg transition-colors ${
+                      tool === 'basis'
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Compass size={20} />
+                  </button>
+                </Tooltip>
               </div>
             </div>
 
             {/* Right side - Display settings */}
             <div className="flex items-center space-x-2">
               {/* Quick toggles */}
-              <button
-                onClick={() => updateSettings({ showGrid: !settings.showGrid })}
-                className={`p-1.5 rounded-lg transition-colors ${
-                  settings.showGrid
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
-                title="Toggle Grid"
+              <Tooltip 
+                content="Grid Toggle" 
+                description="Show or hide the coordinate grid for better spatial reference"
+                position="top"
               >
-                <Grid size={20} />
-              </button>
-              <button
-                onClick={() => updateSettings({ showLabels: !settings.showLabels })}
-                className={`p-1.5 rounded-lg transition-colors ${
-                  settings.showLabels
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
-                title="Toggle Labels"
+                <button
+                  onClick={() => updateSettings({ showGrid: !settings.showGrid })}
+                  className={`p-1.5 rounded-lg transition-colors ${
+                    settings.showGrid
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  <Grid size={20} />
+                </button>
+              </Tooltip>
+
+              <Tooltip 
+                content="Labels Toggle" 
+                description="Show or hide vector labels and coordinate information"
+                position="top"
               >
-                {settings.showLabels ? <Eye size={20} /> : <EyeOff size={20} />}
-              </button>
+                <button
+                  onClick={() => updateSettings({ showLabels: !settings.showLabels })}
+                  className={`p-1.5 rounded-lg transition-colors ${
+                    settings.showLabels
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  {settings.showLabels ? <Eye size={20} /> : <EyeOff size={20} />}
+                </button>
+              </Tooltip>
             </div>
           </div>
         </div>
@@ -213,7 +260,7 @@ const ControlPanel: React.FC = () => {
             
             {/* Scrollable content */}
             <div 
-              className="overflow-y-auto"
+              className="overflow-y-auto" // removed overflow-hidden to allow tooltips to escape
               style={{ 
                 maxHeight: `calc(${panelDimensions.maxHeight}px - 3.5rem)`,
                 overscrollBehavior: 'contain'
