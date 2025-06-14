@@ -635,10 +635,10 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
       {/* Enhanced Header */}
       <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-green-50 to-blue-50 p-4 border-b border-gray-200/50 z-10">
         <h3 className="text-lg font-bold text-gray-800 mb-1">
-          ⚡ Fast 3D Animated Subspace Visualization
+          3D Vector Subspace Analysis
         </h3>
         <p className="text-sm text-gray-600">
-          Optimized performance with smooth 15-20fps animations following exact vector directions
+          Analyze vector spans, linear independence, and subspace relationships
         </p>
       </div>
 

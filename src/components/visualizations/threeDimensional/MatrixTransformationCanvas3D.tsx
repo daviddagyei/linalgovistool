@@ -364,7 +364,7 @@ const ResponsiveCameraControlsUI: React.FC<{
           <h4 className={`font-semibold text-gray-700 ${
             viewport.isMobile ? 'text-xs' : 'text-sm'
           }`}>
-            🎯 Smart Camera
+            Camera Controls
           </h4>
           <button
             onClick={() => setIsExpanded(!isExpanded)}
@@ -378,7 +378,7 @@ const ResponsiveCameraControlsUI: React.FC<{
           <div className={`text-gray-600 ${
             viewport.isMobile ? 'text-xs' : 'text-sm'
           }`}>
-            ⚡ Reactive grid • Auto-zoom
+            Adaptive grid system with auto-framing
           </div>
           
           <button
@@ -387,7 +387,7 @@ const ResponsiveCameraControlsUI: React.FC<{
               viewport.isMobile ? 'text-xs' : 'text-sm'
             }`}
           >
-            🎯 Auto Frame All
+            Auto Frame View
           </button>
         </div>
 
@@ -418,7 +418,7 @@ const ResponsiveCameraControlsUI: React.FC<{
           <p className={`text-gray-500 ${
             viewport.isMobile ? 'text-xs' : 'text-sm'
           }`}>
-            🎯 Use mouse/touch to control camera
+            Use mouse or touch to control camera view
           </p>
         </div>
       </div>
@@ -465,13 +465,13 @@ const MatrixTransformationCanvas3D: React.FC<MatrixTransformationCanvas3DProps> 
       className="matrix-transformation-canvas-3d bg-white rounded-lg shadow-lg overflow-hidden relative"
       style={{ width, height }}
     >
-      {/* Enhanced Header with Reactive Features Info */}
+      {/* Header */}
       <div className="bg-gradient-to-r from-blue-50 to-orange-50 p-4 border-b border-gray-200">
         <h3 className="text-lg font-bold text-gray-800 mb-1">
-          ⚡ Reactive 3D Matrix Transformation • Smart Grid System
+          3D Matrix Transformation Analysis
         </h3>
         <p className="text-sm text-gray-600">
-          Adaptive grids • Smart camera • Auto-zoom • Performance optimized • Det: {determinant.toFixed(3)}
+          Visualize how linear transformations affect vectors and unit shapes. Determinant: {determinant.toFixed(3)}
         </p>
       </div>
       
@@ -494,7 +494,7 @@ const MatrixTransformationCanvas3D: React.FC<MatrixTransformationCanvas3DProps> 
       >
         {/* Set scene background to white */}
         <color attach="background" args={["#ffffff"]} />
-        {/* Enhanced Lighting */}
+        {/* Scene Lighting */}
         <ambientLight intensity={0.4} />
         <directionalLight
           position={[10, 10, 5]}
@@ -589,7 +589,7 @@ const MatrixTransformationCanvas3D: React.FC<MatrixTransformationCanvas3DProps> 
           );
         })}
         
-        {/* Intelligent Camera Controller */}
+        {/* Camera Controller */}
         <CameraController
           vectors={allVectors}
           autoFrame={true}

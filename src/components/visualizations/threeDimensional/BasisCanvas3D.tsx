@@ -42,7 +42,7 @@ const BasisVectorArrow: React.FC<{
   
   return (
     <group>
-      {/* Arrow shaft with enhanced styling for basis vectors */}
+      {/* Arrow shaft for basis vectors */}
       <mesh
         position={end.clone().multiplyScalar(0.5)}
         quaternion={quaternion}
@@ -68,7 +68,7 @@ const BasisVectorArrow: React.FC<{
         />
       </mesh>
       
-      {/* Enhanced Label */}
+      {/* Vector Label */}
       <Text
         position={end.clone().add(direction.clone().multiplyScalar(0.4))}
         fontSize={0.25}
@@ -140,7 +140,7 @@ const BasisCameraControlsUI: React.FC<{
       <div className="bg-white/95 backdrop-blur-sm rounded-lg border border-gray-200/50 shadow-lg">
         <div className="flex items-center justify-between p-3 border-b border-gray-200/50">
           <h4 className="text-sm font-semibold text-gray-700">
-            🎯 Basis Vector Camera
+            Camera Controls
           </h4>
           <button
             onClick={() => setIsExpanded(!isExpanded)}
@@ -176,7 +176,7 @@ const BasisCameraControlsUI: React.FC<{
 
         <div className="px-3 py-2 border-t border-gray-200/50 bg-gray-50/50">
           <p className="text-xs text-gray-500">
-            🎯 Use mouse/touch to control camera
+            Use mouse or touch to control camera view
           </p>
         </div>
       </div>
@@ -218,10 +218,10 @@ const BasisCanvas3D: React.FC<{ width: number; height: number }> = ({ width, hei
       className="basis-canvas-3d bg-white rounded-lg shadow-lg overflow-hidden relative"
       style={{ width, height }}
     >
-      {/* Enhanced Header for Basis Tool */}
+      {/* Header */}
       <div className="bg-gradient-to-r from-green-50 to-orange-50 p-4 border-b border-gray-200">
         <h3 className="text-lg font-bold text-gray-800 mb-1">
-          ⚡ Reactive 3D Basis Vector Visualization
+          3D Basis Vector Visualization
         </h3>
         <p className="text-sm text-gray-600">
           {basisSettings3D.customBasis ? 
@@ -256,7 +256,7 @@ const BasisCanvas3D: React.FC<{ width: number; height: number }> = ({ width, hei
         {/* Set scene background to white */}
         <color attach="background" args={["#ffffff"]} />
         
-        {/* Enhanced Lighting */}
+        {/* Scene Lighting */}
         <ambientLight intensity={0.4} />
         <directionalLight
           position={[10, 10, 5]}
@@ -266,7 +266,7 @@ const BasisCanvas3D: React.FC<{ width: number; height: number }> = ({ width, hei
           shadow-mapSize-height={1024}
         />
         
-        {/* Reactive Grid System */}
+        {/* Grid System */}
         {settings.showGrid && (
           <ReactiveGridPlanes
             showXY={true}
@@ -312,7 +312,7 @@ const BasisCanvas3D: React.FC<{ width: number; height: number }> = ({ width, hei
           );
         })}
         
-        {/* Intelligent Camera Controller */}
+        {/* Camera Controller */}
         <CameraController
           vectors={[...currentBasisVectors, ...vectors3D]}
           autoFrame={true}

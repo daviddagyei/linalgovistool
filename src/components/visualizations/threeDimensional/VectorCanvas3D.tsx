@@ -123,7 +123,7 @@ const SimpleCameraControlsUI: React.FC<{
     <div className="absolute top-4 right-4 z-20">
       <div className="bg-white/95 backdrop-blur-sm rounded-lg border border-gray-200/50 shadow-lg">
         <div className="flex items-center justify-between p-3 border-b border-gray-200/50">
-          <h4 className="text-sm font-semibold text-gray-700">🎯 Vector Camera</h4>
+          <h4 className="text-sm font-semibold text-gray-700">Camera Controls</h4>
           <button
             onClick={() => setIsExpanded(!isExpanded)}
             className="text-gray-500 hover:text-gray-700 transition-colors"
@@ -134,7 +134,7 @@ const SimpleCameraControlsUI: React.FC<{
 
         <div className="p-3 space-y-2">
           <div className="text-sm text-gray-600">
-            🎯 Smart camera with adaptive zoom
+            Adaptive grid system with intelligent camera controls
           </div>
         </div>
 
@@ -158,7 +158,7 @@ const SimpleCameraControlsUI: React.FC<{
 
         <div className="px-3 py-2 border-t border-gray-200/50 bg-gray-50/50">
           <p className="text-xs text-gray-500">
-            🎯 Use mouse/touch to control camera
+            Use mouse or touch to control camera view
           </p>
         </div>
       </div>

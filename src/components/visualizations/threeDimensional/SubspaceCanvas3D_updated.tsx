@@ -314,12 +314,12 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
         <h3 className={`font-bold text-gray-800 mb-1 ${
           viewport.isMobile ? 'text-base' : 'text-lg'
         }`}>
-          ⚡ Adaptive 3D Vector Visualization • Content-Aware Grid System
+          3D Vector Subspace Visualization
         </h3>
         <p className={`text-gray-600 ${
           viewport.isMobile ? 'text-xs' : 'text-sm'
         }`}>
-          Smart scaling • Dynamic LOD • Content-aware grids • Multi-level spacing • Auto-magnitude reference
+          Explore spans and linear independence of vectors in 3D space
         </p>
       </div>
 

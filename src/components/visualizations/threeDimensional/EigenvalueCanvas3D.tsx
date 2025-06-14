@@ -259,7 +259,7 @@ const EigenvalueCameraControlsUI: React.FC<{
     <div className="absolute top-4 right-4 z-20">
       <div className="bg-white/95 backdrop-blur-sm rounded-lg border border-gray-200/50 shadow-lg">
         <div className="flex items-center justify-between p-3 border-b border-gray-200/50">
-          <h4 className="text-sm font-semibold text-gray-700">🎯 Smart Controls</h4>
+          <h4 className="text-sm font-semibold text-gray-700">Camera Controls</h4>
           <button
             onClick={() => setIsExpanded(!isExpanded)}
             className="text-gray-500 hover:text-gray-700 transition-colors"
@@ -270,7 +270,7 @@ const EigenvalueCameraControlsUI: React.FC<{
 
         <div className="p-3 space-y-2">
           <div className="text-sm text-gray-600">
-            ⚡ Reactive grid • Auto-zoom
+            Adaptive grid system with auto-framing
           </div>
         </div>
 
@@ -301,7 +301,7 @@ const EigenvalueCameraControlsUI: React.FC<{
 
         <div className="px-3 py-2 border-t border-gray-200/50 bg-gray-50/50">
           <p className="text-xs text-gray-500">
-            🎯 Intelligent camera with adaptive zoom
+            Camera with adaptive controls
           </p>
         </div>
       </div>
@@ -335,14 +335,14 @@ const EigenvalueCanvas3D: React.FC<EigenvalueCanvas3DProps> = ({ width, height }
       className="eigenvalue-canvas-3d bg-white rounded-lg shadow-lg overflow-hidden relative"
       style={{ width, height }}
     >
-      {/* Enhanced Title and Matrix Information */}
+      {/* Matrix Information */}
       <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 border-b border-gray-200">
         <h3 className="text-lg font-bold text-gray-800 mb-2">
-          ⚡ Reactive 3D Eigenvalue & Eigenvector Analysis • Smart Grid System
+          3D Eigenvalue and Eigenvector Analysis
         </h3>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <h4 className="text-sm font-semibold text-gray-700 mb-1">Transformation Matrix:</h4>
+            <h4 className="text-sm font-semibold text-gray-700 mb-1">Matrix:</h4>
             <div className="text-xs font-mono bg-white p-2 rounded border">
               <div>[{matrix3D[0][0].toFixed(2)} {matrix3D[0][1].toFixed(2)} {matrix3D[0][2].toFixed(2)}]</div>
               <div>[{matrix3D[1][0].toFixed(2)} {matrix3D[1][1].toFixed(2)} {matrix3D[1][2].toFixed(2)}]</div>
@@ -358,7 +358,7 @@ const EigenvalueCanvas3D: React.FC<EigenvalueCanvas3DProps> = ({ width, height }
                     className="w-3 h-3 rounded-full mr-2"
                     style={{ backgroundColor: `hsl(${200 + i * 80}, 80%, 40%)` }}
                   ></span>
-                  <span>λ₍{i+1}₎ = {eig.value.toFixed(3)}</span>
+                  <span>λ{i+1} = {eig.value.toFixed(3)}</span>
                 </div>
               ))}
             </div>
@@ -449,7 +449,7 @@ const EigenvalueCanvas3D: React.FC<EigenvalueCanvas3DProps> = ({ width, height }
           );
         })}
         
-        {/* Intelligent Camera Controller */}
+        {/* Camera Controller */}
         <CameraController
           vectors={allVectors}
           autoFrame={true}
