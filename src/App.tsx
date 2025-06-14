@@ -4,6 +4,7 @@ import Footer from './components/common/Footer';
 import ControlPanel from './components/controls/ControlPanel';
 import VectorCanvas2D from './components/visualizations/twoDimensional/VectorCanvas2D';
 import VectorCanvas3D from './components/visualizations/threeDimensional/VectorCanvas3D';
+import BasisCanvas3D from './components/visualizations/threeDimensional/BasisCanvas3D';
 import MatrixTransformationCanvas2D from './components/visualizations/twoDimensional/MatrixTransformationCanvas2D';
 import MatrixTransformationCanvas3D from './components/visualizations/threeDimensional/MatrixTransformationCanvas3D';
 import SubspaceCanvas2D from './components/visualizations/twoDimensional/SubspaceCanvas2D';
@@ -290,8 +291,11 @@ const AppContent: React.FC = () => {
         return <EigenvalueCanvas2D width={width} height={height} scale={scale} offset={offset} onPanChange={setOffset} onScaleChange={setScale} />;
       }
     } else {
-      if (tool === 'vector' || tool === 'basis') {
+      if (tool === 'vector') {
         return <VectorCanvas3D width={width} height={height} />;
+      }
+      if (tool === 'basis') {
+        return <BasisCanvas3D width={width} height={height} />;
       }
       if (tool === 'matrix') {
         return <MatrixTransformationCanvas3D width={width} height={height} />;
