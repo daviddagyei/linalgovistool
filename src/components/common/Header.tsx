@@ -1,14 +1,28 @@
 import React, { useState } from 'react';
-import { Github, BookOpen, Share2, Sigma } from 'lucide-react';
+import { Github, BookOpen, Share2, Sigma, TestTube } from 'lucide-react';
 import Tooltip from '../ui/Tooltip';
 import DocumentationModal from '../ui/DocumentationModal';
 import ShareModal from '../ui/ShareModal';
 import { useVisualizer } from '../../context/VisualizerContext';
+// Import test functions
+import { testEigenCalculations, testLinearAlgebraAPI } from '../../tests/eigenCalculatorTests';
 
 const Header: React.FC = () => {
   const [isDocumentationOpen, setIsDocumentationOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
   const { getShareableState, loadSharedState } = useVisualizer();
+
+  const handleRunTests = async () => {
+    try {
+      console.log('🚀 Starting eigenvalue calculation tests...');
+      testEigenCalculations();
+      await testLinearAlgebraAPI();
+      alert('✅ All tests passed! Check the console for detailed results.');
+    } catch (error) {
+      console.error('❌ Tests failed:', error);
+      alert('❌ Tests failed! Check the console for error details.');
+    }
+  };
 
   return (
     <header className="bg-gradient-to-r from-blue-700 to-blue-900 text-white py-3 px-4 shadow-md">
@@ -73,6 +87,21 @@ const Header: React.FC = () => {
                   <Github size={16} className="mr-1" />
                   <span className="hidden sm:inline text-sm">GitHub</span>
                 </a>
+              </Tooltip>
+            </li>
+            <li>
+              <Tooltip 
+                content="Run Tests" 
+                description="Execute predefined tests for eigenvalue calculations"
+                position="bottom"
+              >
+                <button 
+                  onClick={handleRunTests}
+                  className="flex items-center p-1.5 rounded hover:bg-white hover:bg-opacity-10 transition-colors"
+                >
+                  <TestTube size={16} className="mr-1" />
+                  <span className="hidden sm:inline text-sm">Test</span>
+                </button>
               </Tooltip>
             </li>
           </ul>
