@@ -23,7 +23,7 @@ interface ContentAwareGridProps {
   opacity?: number;
 }
 
-// Utility functions for smart grid calculations
+// Utility functions for grid calculations
 const calculateVectorStatistics = (vectors: Vector3D[]) => {
   if (vectors.length === 0) {
     return {
@@ -263,7 +263,7 @@ export const ContentAwareGrid: React.FC<ContentAwareGridProps> = ({
 };
 
 /**
- * Enhanced reactive grid planes system with content awareness
+ * Reactive grid planes system with content awareness
  */
 export const ReactiveGridPlanes: React.FC<{
   vectors?: Vector3D[];

@@ -82,7 +82,7 @@ export const ResponsiveCameraControls: React.FC<ResponsiveCameraControlsProps> =
         style={{ padding: spacing.padding }}
       >
         <h4 className="font-semibold" style={{ fontSize: `${fonts.sm}px` }}>
-          {viewport.isMobile ? '📹 Camera' : 'Camera Controls'}
+          {viewport.isMobile ? 'Camera' : 'Camera Controls'}
         </h4>
         
         {!viewport.isMobile && (
@@ -108,7 +108,7 @@ export const ResponsiveCameraControls: React.FC<ResponsiveCameraControlsProps> =
             style={{ fontSize: `${fonts.sm}px` }}
             title="Automatically frame all vectors in view"
           >
-            📐 {viewport.isMobile ? 'Frame' : 'Auto-Frame All'}
+            {viewport.isMobile ? 'Frame' : 'Auto-Frame All'}
           </button>
           
           <button
@@ -119,7 +119,7 @@ export const ResponsiveCameraControls: React.FC<ResponsiveCameraControlsProps> =
             style={{ fontSize: `${fonts.sm}px` }}
             title="Reset to default isometric view"
           >
-            🔄 {viewport.isMobile ? 'Reset' : 'Reset View'}
+            {viewport.isMobile ? 'Reset' : 'Reset View'}
           </button>
         </div>
 
@@ -128,11 +128,11 @@ export const ResponsiveCameraControls: React.FC<ResponsiveCameraControlsProps> =
           <div className="mt-3 pt-3 border-t border-gray-200/50">
             <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
               <div className="flex items-center space-x-1">
-                <span>👆</span>
+                <span>•</span>
                 <span>Drag to rotate</span>
               </div>
               <div className="flex items-center space-x-1">
-                <span>🤏</span>
+                <span>•</span>
                 <span>Pinch to zoom</span>
               </div>
             </div>
@@ -162,7 +162,7 @@ export const ResponsiveCameraControls: React.FC<ResponsiveCameraControlsProps> =
                 <span className="font-mono">
                   v{index + 1}: ({vector.x.toFixed(1)}, {vector.y.toFixed(1)}, {vector.z.toFixed(1)})
                 </span>
-                {selectedIndices[index] && <span className="ml-1">✨</span>}
+                {selectedIndices[index] && <span className="ml-1">•</span>}
               </button>
             ))}
           </div>
@@ -173,7 +173,7 @@ export const ResponsiveCameraControls: React.FC<ResponsiveCameraControlsProps> =
       {!viewport.isMobile && (
         <div className={`px-3 py-2 border-t ${preferences.highContrast ? 'border-white' : 'border-gray-200/50'} bg-gray-50/50`}>
           <p style={{ fontSize: `${fonts.xs}px` }} className="text-gray-500">
-            🎯 Intelligent camera with adaptive zoom limits
+            Camera with adaptive zoom limits
           </p>
         </div>
       )}

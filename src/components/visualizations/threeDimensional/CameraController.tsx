@@ -19,12 +19,12 @@ interface SceneBounds {
 }
 
 /**
- * Intelligent Camera Controller for 3D Vector Visualization
+ * Camera Controller for 3D Vector Visualization
  * 
  * Features:
  * - Auto-framing based on vector magnitudes
  * - Adaptive zoom limits
- * - Smart initial positioning
+ * - Automatic initial positioning
  * - Smooth transitions
  * - Bounding sphere calculations
  */
@@ -112,7 +112,7 @@ export const CameraController: React.FC<CameraControllerProps> = ({
     const maxDistance = Math.max(distance * 20, maxMagnitude * 50, 100);
     const optimalDistance = Math.max(distance, maxMagnitude * 1.5, 3);
 
-    // Smart positioning: place camera at an angle that shows all axes
+    // Position camera at an angle that shows all axes
     const phi = Math.PI / 6; // 30 degrees from horizontal
     const theta = Math.PI / 4; // 45 degrees azimuth
     

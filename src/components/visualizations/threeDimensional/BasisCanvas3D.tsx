@@ -152,7 +152,7 @@ const BasisCameraControlsUI: React.FC<{
 
         <div className="p-3 space-y-2">
           <div className="text-sm text-gray-600">
-            {customBasis ? '📐 Custom Basis Active' : '🔧 Standard Basis'}
+            {customBasis ? 'Custom Basis Active' : 'Standard Basis'}
           </div>
         </div>
 
@@ -225,8 +225,8 @@ const BasisCanvas3D: React.FC<{ width: number; height: number }> = ({ width, hei
         </h3>
         <p className="text-sm text-gray-600">
           {basisSettings3D.customBasis ? 
-            '📐 Custom basis vectors with coordinate transformation' : 
-            '🔧 Standard orthonormal basis vectors (i, j, k)'}
+            'Study custom basis vectors with coordinate transformation' : 
+            'Explore standard orthonormal basis vectors (i, j, k)'}
         </p>
       </div>
 

@@ -179,8 +179,8 @@ export const AdaptiveVectorArrow: React.FC<AdaptiveVectorArrowProps> = ({
     }
   });
   
-  // Generate enhanced color based on magnitude
-  const enhancedColor = useMemo(() => {
+  // Generate color based on magnitude
+  const vectorColor = useMemo(() => {
     const baseColor = new Color(color);
     const intensity = adaptiveProps.intensityScale;
     
@@ -211,11 +211,11 @@ export const AdaptiveVectorArrow: React.FC<AdaptiveVectorArrowProps> = ({
           ]} 
         />
         <meshPhongMaterial 
-          color={enhancedColor}
+          color={vectorColor}
           shininess={100}
           transparent
           opacity={adaptiveProps.opacity}
-          emissive={isActive ? enhancedColor : '#000000'}
+          emissive={isActive ? vectorColor : '#000000'}
           emissiveIntensity={isActive ? 0.2 * adaptiveProps.intensityScale : 0}
         />
       </mesh>
@@ -233,11 +233,11 @@ export const AdaptiveVectorArrow: React.FC<AdaptiveVectorArrowProps> = ({
           ]} 
         />
         <meshPhongMaterial 
-          color={enhancedColor}
+          color={vectorColor}
           shininess={100}
           transparent
           opacity={adaptiveProps.opacity}
-          emissive={isActive ? enhancedColor : '#000000'}
+          emissive={isActive ? vectorColor : '#000000'}
           emissiveIntensity={isActive ? 0.3 * adaptiveProps.intensityScale : 0}
         />
       </mesh>
@@ -265,12 +265,12 @@ export const AdaptiveVectorArrow: React.FC<AdaptiveVectorArrowProps> = ({
         </mesh>
       )}
       
-      {/* Smart positioned label */}
+      {/* Positioned label */}
       {label && (
         <Text
           position={end.clone().add(adaptiveProps.labelOffset)}
           fontSize={0.15 * adaptiveProps.labelScale}
-          color={enhancedColor}
+          color={vectorColor}
           anchorX="center"
           anchorY="middle"
           outlineWidth={0.02}
@@ -281,7 +281,7 @@ export const AdaptiveVectorArrow: React.FC<AdaptiveVectorArrowProps> = ({
           {magnitude > 5 && (
             <meshBasicMaterial 
               attach="material"
-              color={enhancedColor}
+              color={vectorColor}
               transparent
               opacity={Math.min(adaptiveProps.intensityScale, 0.9)}
             />
@@ -294,7 +294,7 @@ export const AdaptiveVectorArrow: React.FC<AdaptiveVectorArrowProps> = ({
         <Text
           position={end.clone().add(adaptiveProps.labelOffset).add(new Vector3(0, -0.3 * adaptiveProps.labelScale, 0))}
           fontSize={0.1 * adaptiveProps.labelScale}
-          color={enhancedColor}
+          color={vectorColor}
           anchorX="center"
           anchorY="middle"
           outlineWidth={0.01}

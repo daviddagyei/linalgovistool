@@ -270,7 +270,7 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
     onTouchEnd: () => handlers.onTouchEnd()
   };
 
-  // Enhanced color scheme with accessibility support
+  // Color scheme with accessibility support
   const colorScheme = {
     vectors: [
       { primary: preferences.highContrast ? '#000080' : '#3B82F6', secondary: '#93C5FD' },
@@ -307,7 +307,7 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
       style={{ width, height }}
       {...(isTouch ? reactHandlers : {})}
     >
-      {/* Enhanced Header with Adaptive Rendering Info */}
+      {/* Header with Adaptive Rendering Info */}
       <div className={`absolute top-0 left-0 right-0 bg-gradient-to-r from-green-50 to-blue-50 border-b border-gray-200/50 z-10 ${
         viewport.isMobile ? 'p-2' : 'p-4'
       }`}>
@@ -355,7 +355,7 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
         }}
         dpr={viewport.isMobile ? [1, 1.5] : [1, 2]} // Adaptive pixel ratio for performance
       >
-        {/* Enhanced Lighting with reduced intensity on mobile */}
+        {/* Lighting with reduced intensity on mobile */}
         <ambientLight intensity={viewport.isMobile ? 0.3 : 0.4} />
         <directionalLight
           position={[10, 10, 5]}
@@ -432,7 +432,7 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
           colorScheme={colorScheme}
         />
         
-        {/* Enhanced Adaptive Vectors with LOD */}
+        {/* Adaptive Vectors with LOD */}
         {vectors3D.map((vector, i) => (
           <AdaptiveVectorArrow
             key={i}
@@ -447,7 +447,7 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
           />
         ))}
         
-        {/* Intelligent Camera Controller */}
+        {/* Camera Controller */}
         <CameraController
           vectors={vectors3D}
           autoFrame={true}

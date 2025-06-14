@@ -338,7 +338,7 @@ export const ResponsiveLegend: React.FC<ResponsiveLegendProps> = ({
                   </div>
                   {selectedIndices[index] && (
                     <span className="text-blue-600 font-medium" style={{ fontSize: `${fonts.xs}px` }}>
-                      ✨ Spanning subspace
+                      Spanning subspace
                     </span>
                   )}
                 </div>
@@ -383,7 +383,7 @@ export const ResponsiveLegend: React.FC<ResponsiveLegendProps> = ({
           <div className={`mt-4 pt-4 border-t ${preferences.highContrast ? 'border-white' : 'border-gray-200/50'}`}>
             <div style={{ fontSize: `${fonts.xs}px` }} className="space-y-1 text-gray-500">
               <div><span className="font-medium">🚀 Adaptive Rendering:</span> LOD + Smart scaling</div>
-              <div><span className="font-medium">📐 Reactive Grid:</span> Content-aware spacing</div>
+              <div><span className="font-medium">Grid:</span> Content-aware spacing</div>
               {viewport.isMobile && (
                 <div><span className="font-medium">📱 Mobile:</span> Pinch to zoom, drag to rotate</div>
               )}

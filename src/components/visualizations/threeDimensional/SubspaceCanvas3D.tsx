@@ -14,7 +14,7 @@ interface SubspaceCanvas3DProps {
   height: number;
 }
 
-// Enhanced Vector Arrow with better materials and lighting
+// Vector Arrow with better materials and lighting
 const VectorArrow: React.FC<{
   vector: { x: number; y: number; z: number };
   color: string;
@@ -49,16 +49,16 @@ const VectorArrow: React.FC<{
     quaternion.setFromAxisAngle(axis, radians);
   }
   
-  const enhancedThickness = isActive ? thickness * 1.5 : showSpan ? thickness * 1.2 : thickness;
+  const arrowThickness = isActive ? thickness * 1.5 : showSpan ? thickness * 1.2 : thickness;
   
   return (
     <group ref={meshRef}>
-      {/* Enhanced arrow shaft */}
+      {/* Arrow shaft */}
       <mesh
         position={end.clone().multiplyScalar(0.5)}
         quaternion={quaternion}
       >
-        <cylinderGeometry args={[enhancedThickness, enhancedThickness, length, 12]} />
+        <cylinderGeometry args={[arrowThickness, arrowThickness, length, 12]} />
         <meshPhongMaterial 
           color={color} 
           shininess={100}
@@ -69,12 +69,12 @@ const VectorArrow: React.FC<{
         />
       </mesh>
       
-      {/* Enhanced arrow head */}
+      {/* Arrow head */}
       <mesh 
         position={end}
         quaternion={quaternion}
       >
-        <coneGeometry args={[enhancedThickness * 3, enhancedThickness * 10, 12]} />
+        <coneGeometry args={[arrowThickness * 3, arrowThickness * 10, 12]} />
         <meshPhongMaterial 
           color={color}
           shininess={100}
@@ -85,7 +85,7 @@ const VectorArrow: React.FC<{
         />
       </mesh>
       
-      {/* Enhanced label */}
+      {/* Label */}
       {label && (
         <Text
           position={end.clone().add(direction.multiplyScalar(0.4))}
@@ -362,7 +362,7 @@ const CameraControlsUI: React.FC<{
             className="w-full px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors text-sm font-medium"
             title="Automatically frame all vectors in view"
           >
-            📐 Auto-Frame All
+            Auto-Frame All
           </button>
           
           <button
@@ -370,7 +370,7 @@ const CameraControlsUI: React.FC<{
             className="w-full px-3 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors text-sm font-medium"
             title="Reset to default isometric view"
           >
-            🔄 Reset View
+            Reset View
           </button>
         </div>
 
@@ -392,7 +392,7 @@ const CameraControlsUI: React.FC<{
                   <span className="font-mono">
                     v{index + 1}: ({vector.x.toFixed(1)}, {vector.y.toFixed(1)}, {vector.z.toFixed(1)})
                   </span>
-                  {selectedIndices[index] && <span className="ml-1">✨</span>}
+                  {selectedIndices[index] && <span className="ml-1">•</span>}
                 </button>
               ))}
             </div>
@@ -401,7 +401,7 @@ const CameraControlsUI: React.FC<{
 
         <div className="px-3 py-2 border-t border-gray-200/50 bg-gray-50/50">
           <p className="text-xs text-gray-500">
-            🎯 Intelligent camera with adaptive zoom limits
+            Camera with adaptive zoom limits
           </p>
         </div>
       </div>
@@ -410,7 +410,7 @@ const CameraControlsUI: React.FC<{
 };
 */
 
-// Enhanced Draggable Legend (simplified for this version)
+// Draggable Legend (simplified for this version)
 const DraggableLegend: React.FC<{
   vectors: { x: number; y: number; z: number }[];
   selectedIndices: boolean[];
@@ -552,7 +552,7 @@ const DraggableLegend: React.FC<{
               </div>
               {selectedIndices[index] && (
                 <span className="text-xs text-blue-600 font-medium">
-                  ✨ Spanning subspace
+                  Spanning subspace
                 </span>
               )}
             </div>
@@ -595,7 +595,7 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
   const { vectors3D, settings, subspaceSettings, updateSubspaceSettings } = useVisualizer();
   const [hoveredVector] = useState<number | null>(null);
 
-  // Enhanced color scheme
+  // Color scheme
   const colorScheme = {
     vectors: [
       { primary: '#3B82F6', secondary: '#93C5FD' },
@@ -632,7 +632,7 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
       className="subspace-canvas-3d bg-gradient-to-br from-gray-50 to-white rounded-xl shadow-xl overflow-hidden relative"
       style={{ width, height }}
     >
-      {/* Enhanced Header */}
+      {/* Header */}
       <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-green-50 to-blue-50 p-4 border-b border-gray-200/50 z-10">
         <h3 className="text-lg font-bold text-gray-800 mb-1">
           3D Vector Subspace Analysis
@@ -655,7 +655,7 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
         shadows
         style={{ marginTop: '80px', height: height - 80 }}
       >
-        {/* Enhanced Lighting */}
+        {/* Lighting */}
         <ambientLight intensity={0.4} />
         <directionalLight
           position={[10, 10, 5]}
@@ -666,7 +666,7 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
         />
         <pointLight position={[-10, -10, -10]} intensity={0.3} />
         
-        {/* Enhanced Reactive Grid System */}
+        {/* Reactive Grid System */}
         {settings.showGrid && (
           <ReactiveGridPlanes 
             showXY={true}
@@ -675,7 +675,7 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
           />
         )}
         
-        {/* Enhanced Coordinate Axes */}
+        {/* Coordinate Axes */}
         {settings.showAxes && (
           <>
             {/* X axis (red) */}
