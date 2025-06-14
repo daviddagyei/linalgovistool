@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { useVisualizer } from '../../../context/VisualizerContext';
 import { isLinearlyIndependent3D, magnitude3D, crossProduct, normalize3D } from '../../../utils/mathUtils';
 import { ReactiveGridPlanes } from './ReactiveGrid';
-import { CameraController } from './CameraController';
+import { CameraController, useCameraControls } from './CameraController';
 
 interface SubspaceCanvas3DProps {
   width: number;
@@ -601,6 +601,7 @@ const DraggableLegend: React.FC<{
 const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) => {
   const { vectors3D, settings, subspaceSettings, updateSubspaceSettings } = useVisualizer();
   const [hoveredVector, setHoveredVector] = useState<number | null>(null);
+  const { focusOnVector, autoFrame, resetView } = useCameraControls();
 
   // Enhanced color scheme
   const colorScheme = {
@@ -628,8 +629,9 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
   };
 
   const handleFocusVector = (index: number) => {
-    // Camera focusing will be handled by the CameraController component
-    console.log(`Focus on vector ${index}`);
+    if (vectors3D[index]) {
+      focusOnVector(vectors3D[index]);
+    }
   };
 
   return (
@@ -647,8 +649,14 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
         </p>
       </div>
 
-      {/* Temporarily disabled camera controls UI */}
-      {/* Will be re-enabled after fixing hook issues */}
+      {/* Camera Controls UI */}
+      <CameraControlsUI
+        onAutoFrame={autoFrame}
+        onFocusVector={handleFocusVector}
+        onResetView={resetView}
+        vectors={vectors3D}
+        selectedIndices={subspaceSettings.showSpan}
+      />
       
       <Canvas
         camera={{

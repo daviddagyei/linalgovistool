@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { useVisualizer } from '../../../context/VisualizerContext';
 import { isLinearlyIndependent3D, magnitude3D, crossProduct, normalize3D } from '../../../utils/mathUtils';
 import { ReactiveGridPlanes } from './ReactiveGrid';
-import { CameraController } from './CameraController';
+import { CameraController, useCameraControls } from './CameraController';
 
 interface SubspaceCanvas3DProps {
   width: number;
@@ -120,15 +120,25 @@ const FastAnimatedSpanLine: React.FC<{
       const positions = pointsRef.current.geometry.attributes.position;
       
       if (positions) {
-        const array = positions.array as Float32Array;
-        for (let i = 0; i < array.length; i += 3) {
-          const t = (i / 3) / (array.length / 3 - 1) * range - range / 2;
-          const animPhase = Math.sin(time * 2 + t * 0.5) * 0.1;
-          array[i] = vector.x * (t + animPhase);
-          array[i + 1] = vector.y * (t + animPhase);
-          array[i + 2] = vector.z * (t + animPhase);
+        const vectorMagnitude = magnitude3D(vector);
+        if (vectorMagnitude > 1e-10) {
+          const steps = 60; // Reduced from 100
+          
+          for (let i = 0; i < steps; i++) {
+            const baseT = (i / (steps - 1) - 0.5) * 2 * range / vectorMagnitude;
+            // OPTIMIZED: Simplified wave motion
+            const waveOffset = Math.sin(time * 4 + i * 0.15) * 0.08;
+            const t = baseT + waveOffset;
+            
+            positions.setXYZ(i, 
+              vector.x * t,
+              vector.y * t,
+              vector.z * t
+            );
+          }
+          
+          positions.needsUpdate = true;
         }
-        positions.needsUpdate = true;
       }
     }
   });
@@ -142,13 +152,12 @@ const FastAnimatedSpanLine: React.FC<{
       points.push(new Vector3(0, 0, 0));
     } else {
       for (let i = 0; i < steps; i++) {
-        const t = (i / (steps - 1)) * range - range / 2;
-        const point = new Vector3(
+        const t = (i / (steps - 1) - 0.5) * 2 * range / vectorMagnitude;
+        points.push(new Vector3(
           vector.x * t,
           vector.y * t,
           vector.z * t
-        );
-        points.push(point);
+        ));
       }
     }
     
@@ -191,27 +200,25 @@ const FastAnimatedSpanPlane: React.FC<{
       if (positions && vectors.length >= 2) {
         const v1 = vectors[0];
         const v2 = vectors[1];
-        const array = positions.array as Float32Array;
-        
-        let index = 0;
-        const resolution = 10;
+        const resolution = 10; // Reduced from 15
         const size = 6;
+        let index = 0;
         
         for (let i = -resolution; i <= resolution; i++) {
           for (let j = -resolution; j <= resolution; j++) {
-            const s = (i / resolution) * size;
-            const t = (j / resolution) * size;
+            const scale1 = size / (2 * Math.max(magnitude3D(v1), 1));
+            const scale2 = size / (2 * Math.max(magnitude3D(v2), 1));
             
-            const animationPhase = Math.sin(time * 1.5 + s * 0.2 + t * 0.2) * 0.05;
+            // OPTIMIZED: Simplified wave motion
+            const waveS = (i / resolution) * scale1 + Math.sin(time * 3 + i * 0.2) * 0.015;
+            const waveT = (j / resolution) * scale2 + Math.cos(time * 3.5 + j * 0.2) * 0.015;
             
-            const x = v1.x * s + v2.x * t + animationPhase;
-            const y = v1.y * s + v2.y * t + animationPhase;
-            const z = v1.z * s + v2.z * t + animationPhase;
+            const newX = waveS * v1.x + waveT * v2.x;
+            const newY = waveS * v1.y + waveT * v2.y;
+            const newZ = waveS * v1.z + waveT * v2.z;
             
-            array[index] = x;
-            array[index + 1] = y;
-            array[index + 2] = z;
-            index += 3;
+            positions.setXYZ(index, newX, newY, newZ);
+            index++;
           }
         }
         
@@ -231,15 +238,17 @@ const FastAnimatedSpanPlane: React.FC<{
     
     for (let i = -resolution; i <= resolution; i++) {
       for (let j = -resolution; j <= resolution; j++) {
-        const s = (i / resolution) * size;
-        const t = (j / resolution) * size;
+        const scale1 = size / (2 * Math.max(magnitude3D(v1), 1));
+        const scale2 = size / (2 * Math.max(magnitude3D(v2), 1));
         
-        const point = new Vector3(
-          v1.x * s + v2.x * t,
-          v1.y * s + v2.y * t,
-          v1.z * s + v2.z * t
-        );
-        points.push(point);
+        const s = (i / resolution) * scale1;
+        const t = (j / resolution) * scale2;
+        
+        points.push(new Vector3(
+          s * v1.x + t * v2.x,
+          s * v1.y + t * v2.y,
+          s * v1.z + t * v2.z
+        ));
       }
     }
     
@@ -276,6 +285,8 @@ const FastAnimatedSpanVisualization: React.FC<{
     const color = colorScheme.vectors[vectorIndex % colorScheme.vectors.length].primary;
     return <FastAnimatedSpanLine vector={selectedVectors[0]} color={color} />;
   } else if (selectedVectors.length === 2) {
+    const vectorIndex1 = vectors.findIndex(v => v === selectedVectors[0]);
+    const vectorIndex2 = vectors.findIndex(v => v === selectedVectors[1]);
     const color = isIndependent ? colorScheme.spans.independent.stroke : colorScheme.spans.dependent.stroke;
     
     return (
@@ -286,13 +297,12 @@ const FastAnimatedSpanVisualization: React.FC<{
           isIndependent={isIndependent}
           opacity={0.4}
         />
-        <FastAnimatedSpanLine vector={selectedVectors[0]} color={color} />
-        <FastAnimatedSpanLine vector={selectedVectors[1]} color={color} />
+        {/* OPTIMIZED: Only show vector lines if independent */}
         {isIndependent && (
-          <FastAnimatedSpanLine 
-            vector={normalize3D(crossProduct(selectedVectors[0], selectedVectors[1]))} 
-            color={colorScheme.spans.intersection.stroke} 
-          />
+          <group>
+            <FastAnimatedSpanLine vector={selectedVectors[0]} color={colorScheme.vectors[vectorIndex1 % colorScheme.vectors.length].primary} range={5} />
+            <FastAnimatedSpanLine vector={selectedVectors[1]} color={colorScheme.vectors[vectorIndex2 % colorScheme.vectors.length].primary} range={5} />
+          </group>
         )}
       </group>
     );
@@ -305,7 +315,7 @@ const FastAnimatedSpanVisualization: React.FC<{
             vectors={[selectedVectors[0], selectedVectors[1]]} 
             color={colorScheme.spans.independent.stroke} 
             isIndependent={true}
-            opacity={0.2}
+            opacity={0.15}
           />
           <FastAnimatedSpanPlane 
             vectors={[selectedVectors[1], selectedVectors[2]]} 
@@ -337,87 +347,7 @@ const FastAnimatedSpanVisualization: React.FC<{
   return null;
 };
 
-// Camera Controls UI Component
-const CameraControlsUI: React.FC<{
-  onAutoFrame: () => void;
-  onFocusVector: (index: number) => void;
-  onResetView: () => void;
-  vectors: { x: number; y: number; z: number }[];
-  selectedIndices: boolean[];
-}> = ({ onAutoFrame, onFocusVector, onResetView, vectors, selectedIndices }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  return (
-    <div className="absolute top-20 right-4 z-20">
-      <div className="bg-white/95 backdrop-blur-sm rounded-lg border border-gray-200/50 shadow-lg">
-        {/* Camera Controls Header */}
-        <div className="flex items-center justify-between p-3 border-b border-gray-200/50">
-          <h4 className="text-sm font-semibold text-gray-700">Camera Controls</h4>
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="text-gray-500 hover:text-gray-700 transition-colors"
-          >
-            {isExpanded ? '▼' : '▶'}
-          </button>
-        </div>
-
-        {/* Always visible essential controls */}
-        <div className="p-3 space-y-2">
-          <button
-            onClick={onAutoFrame}
-            className="w-full px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors text-sm font-medium"
-            title="Automatically frame all vectors in view"
-          >
-            📐 Auto-Frame All
-          </button>
-          
-          <button
-            onClick={onResetView}
-            className="w-full px-3 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors text-sm font-medium"
-            title="Reset to default isometric view"
-          >
-            🔄 Reset View
-          </button>
-        </div>
-
-        {/* Expandable vector focus controls */}
-        {isExpanded && (
-          <div className="p-3 border-t border-gray-200/50">
-            <h5 className="text-xs font-semibold text-gray-600 mb-2">Focus on Vector:</h5>
-            <div className="space-y-1 max-h-32 overflow-y-auto">
-              {vectors.map((vector, index) => (
-                <button
-                  key={index}
-                  onClick={() => onFocusVector(index)}
-                  className={`w-full px-2 py-1 text-left rounded text-xs transition-colors ${
-                    selectedIndices[index]
-                      ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                  title={`Focus camera on vector v${index + 1}`}
-                >
-                  <span className="font-mono">
-                    v{index + 1}: ({vector.x.toFixed(1)}, {vector.y.toFixed(1)}, {vector.z.toFixed(1)})
-                  </span>
-                  {selectedIndices[index] && <span className="ml-1">✨</span>}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Camera info */}
-        <div className="px-3 py-2 border-t border-gray-200/50 bg-gray-50/50">
-          <p className="text-xs text-gray-500">
-            🎯 Intelligent camera with adaptive zoom limits
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Enhanced Draggable Legend (simplified for this version)
+// Enhanced Draggable Legend
 const DraggableLegend: React.FC<{
   vectors: { x: number; y: number; z: number }[];
   selectedIndices: boolean[];
@@ -522,48 +452,39 @@ const DraggableLegend: React.FC<{
       onTouchStart={handleTouchStart}
     >
       <div className="flex items-center justify-between mb-4">
-        <h4 className="text-lg font-bold text-gray-800">3D Subspace Visualization</h4>
+        <h4 className="text-lg font-bold text-gray-800">⚡ Fast 3D Spans</h4>
         <div className="text-xs text-gray-400">⋮⋮</div>
       </div>
       
       {/* Vector Controls */}
       <div className="space-y-3 mb-4">
-        {vectors.map((vector, index) => (
-          <div 
-            key={index} 
-            className="flex items-center p-2 rounded-lg bg-gray-50/80 hover:bg-gray-100/80 transition-colors"
+        <h5 className="text-sm font-semibold text-gray-700">Vector Spans</h5>
+        {vectors.map((vector, i) => (
+          <button
+            key={i}
+            onClick={() => onToggleSpan(i)}
+            className={`w-full flex items-center justify-between p-3 rounded-lg border transition-all duration-200 ${
+              selectedIndices[i]
+                ? 'bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200 text-blue-700 shadow-sm'
+                : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+            }`}
           >
-            <button
-              onClick={() => onToggleSpan(index)}
-              className={`w-8 h-8 rounded-full flex-shrink-0 mr-3 transition-all duration-200 ${
-                selectedIndices[index]
-                  ? 'bg-blue-500 text-white scale-110'
-                  : 'bg-gray-300 text-gray-600 hover:bg-gray-400'
-              }`}
-              style={{
-                backgroundColor: selectedIndices[index] 
-                  ? colorScheme.vectors[index % colorScheme.vectors.length].primary 
-                  : undefined
-              }}
-            >
-              {selectedIndices[index] ? '✓' : '+'}
-            </button>
-            <div className="flex-1">
-              <div className="flex items-center">
-                <span className="font-semibold text-sm">
-                  v{index + 1}
-                </span>
-                <span className="text-xs text-gray-500 ml-2 font-mono">
-                  ({vector.x.toFixed(2)}, {vector.y.toFixed(2)}, {vector.z.toFixed(2)})
-                </span>
-              </div>
-              {selectedIndices[index] && (
-                <span className="text-xs text-blue-600 font-medium">
-                  ✨ Spanning subspace
-                </span>
-              )}
+            <div className="flex items-center space-x-3">
+              <div 
+                className={`w-4 h-4 rounded-full border-2 ${selectedIndices[i] ? 'animate-pulse' : ''}`}
+                style={{
+                  backgroundColor: selectedIndices[i] ? colorScheme.vectors[i % colorScheme.vectors.length].primary : 'transparent',
+                  borderColor: colorScheme.vectors[i % colorScheme.vectors.length].primary
+                }}
+              />
+              <span className="font-medium text-sm">
+                v<sub>{i + 1}</sub>
+              </span>
+              <span className="text-xs text-gray-500 font-mono">
+                ({vector.x.toFixed(1)}, {vector.y.toFixed(1)}, {vector.z.toFixed(1)})
+              </span>
             </div>
-          </div>
+          </button>
         ))}
       </div>
       
@@ -572,25 +493,61 @@ const DraggableLegend: React.FC<{
         <div className={`p-4 rounded-lg border-l-4 ${
           isIndependent ? 'bg-green-50 border-green-400' : 'bg-orange-50 border-orange-400'
         }`}>
-          <h5 className="font-semibold text-sm mb-2">
-            {isIndependent ? '✅ Linear Independence' : '⚠️ Linear Dependence'}
-          </h5>
-          <p className="text-xs text-gray-600 mb-2">
-            {selectedCount} vector{selectedCount > 1 ? 's' : ''} selected
-          </p>
-          <p className="text-xs">
-            {selectedCount === 1 && 'Spans a line through origin'}
-            {selectedCount === 2 && isIndependent && 'Spans a plane through origin'}
-            {selectedCount === 2 && !isIndependent && 'Spans a line (vectors are parallel)'}
-            {selectedCount === 3 && isIndependent && 'Spans all of 3D space'}
-            {selectedCount === 3 && !isIndependent && 'Spans a plane or line (vectors are coplanar)'}
-          </p>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold">Linear Independence</span>
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                isIndependent ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+              }`}>
+                {isIndependent ? 'Independent' : 'Dependent'}
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-gray-600">Vectors:</span>
+                <span className="ml-2 font-medium">{selectedCount}</span>
+              </div>
+              <div>
+                <span className="text-gray-600">Dimension:</span>
+                <span className="ml-2 font-medium">
+                  {selectedCount === 0 ? 0 :
+                   selectedCount === 1 ? 1 :
+                   selectedCount === 2 && isIndependent ? 2 :
+                   selectedCount === 3 && isIndependent ? 3 :
+                   selectedCount === 2 ? 1 : 2}
+                </span>
+              </div>
+            </div>
+            
+            <div className="text-xs text-gray-600 mt-2">
+              {selectedCount === 1 && '⚡ Fast flowing dots along vector direction'}
+              {selectedCount === 2 && isIndependent && '⚡ Optimized animated plane'}
+              {selectedCount === 2 && !isIndependent && '⚡ Fast line animation (dependent vectors)'}
+              {selectedCount === 3 && isIndependent && '⚡ Efficient multi-plane visualization'}
+              {selectedCount === 3 && !isIndependent && '⚡ Optimized plane or line'}
+            </div>
+          </div>
         </div>
       )}
       
       {/* Performance Info */}
-      <div className="mt-4 pt-4 border-t border-gray-200/50 text-xs text-gray-500">
-        <span className="font-medium">🚀 Optimized:</span> 15-20fps smooth animations
+      <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+        <div className="text-sm text-green-800">
+          <div className="font-medium mb-2">⚡ Performance Optimized</div>
+          <div className="text-xs space-y-1">
+            <div>• <strong>Reduced complexity:</strong> Fewer dots for speed</div>
+            <div>• <strong>Throttled updates:</strong> 15-20fps for smooth motion</div>
+            <div>• <strong>Smart rendering:</strong> Only visible elements</div>
+            <div>• <strong>Efficient algorithms:</strong> Optimized calculations</div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="mt-3 pt-3 border-t border-gray-200 text-xs text-gray-500">
+        <span className="font-medium">Controls:</span> 
+        <span className="hidden sm:inline"> Click & drag to rotate, scroll to zoom</span>
+        <span className="sm:hidden"> Pinch to zoom, drag to rotate</span>
       </div>
     </div>,
     document.body
@@ -618,6 +575,108 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
     }
   };
 
+// Camera Controls UI Component
+const CameraControlsUI: React.FC<{
+  onAutoFrame: () => void;
+  onFocusVector: (index: number) => void;
+  onResetView: () => void;
+  vectors: { x: number; y: number; z: number }[];
+  selectedIndices: boolean[];
+}> = ({ onAutoFrame, onFocusVector, onResetView, vectors, selectedIndices }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  return (
+    <div className="absolute top-20 right-4 z-20">
+      <div className="bg-white/95 backdrop-blur-sm rounded-lg border border-gray-200/50 shadow-lg">
+        {/* Camera Controls Header */}
+        <div className="flex items-center justify-between p-3 border-b border-gray-200/50">
+          <h4 className="text-sm font-semibold text-gray-700">Camera Controls</h4>
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-gray-500 hover:text-gray-700 transition-colors"
+          >
+            {isExpanded ? '▼' : '▶'}
+          </button>
+        </div>
+
+        {/* Always visible essential controls */}
+        <div className="p-3 space-y-2">
+          <button
+            onClick={onAutoFrame}
+            className="w-full px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors text-sm font-medium"
+            title="Automatically frame all vectors in view"
+          >
+            📐 Auto-Frame All
+          </button>
+          
+          <button
+            onClick={onResetView}
+            className="w-full px-3 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors text-sm font-medium"
+            title="Reset to default isometric view"
+          >
+            🔄 Reset View
+          </button>
+        </div>
+
+        {/* Expandable vector focus controls */}
+        {isExpanded && (
+          <div className="p-3 border-t border-gray-200/50">
+            <h5 className="text-xs font-semibold text-gray-600 mb-2">Focus on Vector:</h5>
+            <div className="space-y-1 max-h-32 overflow-y-auto">
+              {vectors.map((vector, index) => (
+                <button
+                  key={index}
+                  onClick={() => onFocusVector(index)}
+                  className={`w-full px-2 py-1 text-left rounded text-xs transition-colors ${
+                    selectedIndices[index]
+                      ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                  title={`Focus camera on vector v${index + 1}`}
+                >
+                  <span className="font-mono">
+                    v{index + 1}: ({vector.x.toFixed(1)}, {vector.y.toFixed(1)}, {vector.z.toFixed(1)})
+                  </span>
+                  {selectedIndices[index] && <span className="ml-1">✨</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Camera info */}
+        <div className="px-3 py-2 border-t border-gray-200/50 bg-gray-50/50">
+          <p className="text-xs text-gray-500">
+            🎯 Intelligent camera with adaptive zoom limits
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Main Canvas component
+const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) => {
+  const { vectors3D, settings, subspaceSettings, updateSubspaceSettings } = useVisualizer();
+  const [hoveredVector, setHoveredVector] = useState<number | null>(null);
+  const { focusOnVector, autoFrame, resetView } = useCameraControls();
+
+  // Enhanced color scheme
+  const colorScheme = {
+    vectors: [
+      { primary: '#3B82F6', secondary: '#93C5FD' },
+      { primary: '#EF4444', secondary: '#FCA5A5' },
+      { primary: '#10B981', secondary: '#6EE7B7' },
+      { primary: '#8B5CF6', secondary: '#C4B5FD' },
+      { primary: '#F59E0B', secondary: '#FCD34D' }
+    ],
+    spans: {
+      independent: { fill: 'rgba(59, 130, 246, 0.15)', stroke: '#3B82F6' },
+      dependent: { fill: 'rgba(239, 68, 68, 0.15)', stroke: '#EF4444' },
+      intersection: { fill: 'rgba(139, 92, 246, 0.2)', stroke: '#8B5CF6' }
+    }
+  };
+
   const selectedVectors = vectors3D.filter((_, i) => subspaceSettings.showSpan[i]);
   const isIndependent = isLinearlyIndependent3D(selectedVectors);
 
@@ -628,8 +687,9 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
   };
 
   const handleFocusVector = (index: number) => {
-    // Camera focusing will be handled by the CameraController component
-    console.log(`Focus on vector ${index}`);
+    if (vectors3D[index]) {
+      focusOnVector(vectors3D[index]);
+    }
   };
 
   return (
@@ -647,8 +707,14 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
         </p>
       </div>
 
-      {/* Temporarily disabled camera controls UI */}
-      {/* Will be re-enabled after fixing hook issues */}
+      {/* Camera Controls UI */}
+      <CameraControlsUI
+        onAutoFrame={autoFrame}
+        onFocusVector={handleFocusVector}
+        onResetView={resetView}
+        vectors={vectors3D}
+        selectedIndices={subspaceSettings.showSpan}
+      />
       
       <Canvas
         camera={{

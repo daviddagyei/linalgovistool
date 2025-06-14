@@ -1,10 +1,11 @@
-import React, { useRef, useState } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Text } from '@react-three/drei';
+import React, { useState } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { Text } from '@react-three/drei';
 import { Vector3, Matrix4, Quaternion } from 'three';
 import { useVisualizer } from '../../../context/VisualizerContext';
 import { Vector3D } from '../../../types';
 import { ReactiveGridPlanes } from './ReactiveGrid';
+import { CameraController } from './CameraController';
 
 // Vector Arrow component
 const VectorArrow: React.FC<{
@@ -113,91 +114,80 @@ const Axes: React.FC<{ size: number }> = ({ size }) => {
   );
 };
 
-// Scene component
-const Scene: React.FC = () => {
+// Simplified Camera Controls UI Component (without hooks)
+const SimpleCameraControlsUI: React.FC<{
+  vectors: Vector3D[];
+}> = ({ vectors }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  return (
+    <div className="absolute top-4 right-4 z-20">
+      <div className="bg-white/95 backdrop-blur-sm rounded-lg border border-gray-200/50 shadow-lg">
+        <div className="flex items-center justify-between p-3 border-b border-gray-200/50">
+          <h4 className="text-sm font-semibold text-gray-700">Camera Controls</h4>
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-gray-500 hover:text-gray-700 transition-colors"
+          >
+            {isExpanded ? '▼' : '▶'}
+          </button>
+        </div>
+
+        <div className="p-3 space-y-2">
+          <div className="text-sm text-gray-600">
+            🎯 Smart camera with adaptive zoom
+          </div>
+        </div>
+
+        {isExpanded && (
+          <div className="p-3 border-t border-gray-200/50">
+            <h5 className="text-xs font-semibold text-gray-600 mb-2">Vectors in scene:</h5>
+            <div className="space-y-1 max-h-32 overflow-y-auto">
+              {vectors.map((vector, index) => (
+                <div
+                  key={index}
+                  className="w-full px-2 py-1 text-left rounded text-xs bg-gray-100 text-gray-600"
+                >
+                  <span className="font-mono">
+                    v{index + 1}: ({vector.x.toFixed(1)}, {vector.y.toFixed(1)}, {vector.z.toFixed(1)})
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="px-3 py-2 border-t border-gray-200/50 bg-gray-50/50">
+          <p className="text-xs text-gray-500">
+            🎯 Use mouse/touch to control camera
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Main 3D Vector Canvas component
+const VectorCanvas3D: React.FC<{ width: number; height: number }> = ({ width, height }) => {
   const { 
     vectors3D, 
     settings,
     basisSettings3D,
     changeBasis3D
   } = useVisualizer();
-  
+
   // Vector colors
   const vectorColors = ['#3366FF', '#FF6633', '#33CC99', '#9966FF', '#FF9933'];
   const basisColors = ['#22C55E', '#EC4899', '#F59E0B']; // Green, Pink, and Orange for basis vectors
-  
-  return (
-    <group>
-      {/* Reactive Grid planes */}
-      {settings.showGrid && <ReactiveGridPlanes />}
-      
-      {/* Coordinate axes */}
-      {settings.showAxes && !basisSettings3D.customBasis && <Axes size={5} />}
 
-      {/* Custom basis vectors */}
-      {basisSettings3D.customBasis && basisSettings3D.basisVectors.map((vector, index) => (
-        <VectorArrow
-          key={`basis-${index}`}
-          vector={vector}
-          color={basisColors[index]}
-          label={`e${index + 1}`}
-          thickness={0.03}
-        />
-      ))}
-      
-      {/* Vectors */}
-      {vectors3D.map((vector, index) => {
-        const coords = basisSettings3D.customBasis ? 
-          changeBasis3D(vector) : 
-          vector;
-
-        return (
-          <VectorArrow
-            key={index}
-            vector={vector}
-            color={vectorColors[index % vectorColors.length]}
-            label={`v${index + 1}(${coords.x.toFixed(1)}, ${coords.y.toFixed(1)}, ${coords.z.toFixed(1)})`}
-          />
-        );
-      })}
-    </group>
-  );
-};
-
-// Camera controller with improved initial position
-const CameraController: React.FC = () => {
-  const { camera } = useThree();
-  const [isRotating, setIsRotating] = useState(true);
-  
-  useFrame(({ clock }) => {
-    if (!isRotating) return;
-    const t = clock.getElapsedTime() * 0.1;
-    const radius = 10;
-    camera.position.x = Math.cos(t) * radius;
-    camera.position.z = Math.sin(t) * radius;
-    camera.position.y = radius * 0.5;
-    camera.lookAt(0, 0, 0);
-  });
-  
-  return (
-    <OrbitControls
-      enablePan={true}
-      enableZoom={true}
-      enableRotate={true}
-      minDistance={0.01}
-      maxDistance={Infinity}
-      onChange={() => setIsRotating(false)}
-    />
-  );
-};
-
-// Main 3D Vector Canvas component
-const VectorCanvas3D: React.FC<{ width: number; height: number }> = ({ width, height }) => {
   return (
     <div 
-      className="vector-canvas-3d bg-white rounded-lg shadow-lg overflow-hidden"
+      className="vector-canvas-3d bg-white rounded-lg shadow-lg overflow-hidden relative"
       style={{ width, height }}
     >
+      {/* Simplified Camera Controls UI */}
+      <SimpleCameraControlsUI vectors={vectors3D} />
+
       <Canvas
         camera={{
           position: [8, 4, 8],
@@ -215,11 +205,45 @@ const VectorCanvas3D: React.FC<{ width: number; height: number }> = ({ width, he
           castShadow
         />
         
-        {/* Scene content */}
-        <Scene />
+        {/* Reactive Grid planes */}
+        {settings.showGrid && <ReactiveGridPlanes />}
         
-        {/* Camera controls */}
-        <CameraController />
+        {/* Coordinate axes */}
+        {settings.showAxes && !basisSettings3D.customBasis && <Axes size={5} />}
+
+        {/* Custom basis vectors */}
+        {basisSettings3D.customBasis && basisSettings3D.basisVectors.map((vector, index) => (
+          <VectorArrow
+            key={`basis-${index}`}
+            vector={vector}
+            color={basisColors[index]}
+            label={`e${index + 1}`}
+            thickness={0.03}
+          />
+        ))}
+        
+        {/* Vectors */}
+        {vectors3D.map((vector, index) => {
+          const coords = basisSettings3D.customBasis ? 
+            changeBasis3D(vector) : 
+            vector;
+
+          return (
+            <VectorArrow
+              key={index}
+              vector={vector}
+              color={vectorColors[index % vectorColors.length]}
+              label={`v${index + 1}(${coords.x.toFixed(1)}, ${coords.y.toFixed(1)}, ${coords.z.toFixed(1)})`}
+            />
+          );
+        })}
+        
+        {/* Intelligent Camera Controller */}
+        <CameraController
+          vectors={vectors3D}
+          autoFrame={true}
+          enableAutoRotate={false}
+        />
       </Canvas>
     </div>
   );
