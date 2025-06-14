@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { Canvas } from '@react-three/fiber';
-import { Text } from '@react-three/drei';
 import { Vector3, Quaternion } from 'three';
 import { useVisualizer } from '../../../context/VisualizerContext';
 import { Vector3D, Vector2D } from '../../../types';
@@ -252,18 +251,15 @@ const DraggableLegend: React.FC<{
 
 // Camera Controls UI Component for Eigenvalue Canvas
 const EigenvalueCameraControlsUI: React.FC<{
-  onAutoFrame: () => void;
-  onFocusEigenvector: (index: number) => void;
-  onResetView: () => void;
   eigenvalues: Array<{ value: number; vector: Vector3D | Vector2D }>;
-}> = ({ onAutoFrame, onFocusEigenvector, onResetView, eigenvalues }) => {
+}> = ({ eigenvalues }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
     <div className="absolute top-4 right-4 z-20">
       <div className="bg-white/95 backdrop-blur-sm rounded-lg border border-gray-200/50 shadow-lg">
         <div className="flex items-center justify-between p-3 border-b border-gray-200/50">
-          <h4 className="text-sm font-semibold text-gray-700">Camera Controls</h4>
+          <h4 className="text-sm font-semibold text-gray-700">🎯 Smart Controls</h4>
           <button
             onClick={() => setIsExpanded(!isExpanded)}
             className="text-gray-500 hover:text-gray-700 transition-colors"
@@ -273,35 +269,21 @@ const EigenvalueCameraControlsUI: React.FC<{
         </div>
 
         <div className="p-3 space-y-2">
-          <button
-            onClick={onAutoFrame}
-            className="w-full px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors text-sm font-medium"
-            title="Automatically frame all vectors and eigenvectors in view"
-          >
-            📐 Auto-Frame All
-          </button>
-          
-          <button
-            onClick={onResetView}
-            className="w-full px-3 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors text-sm font-medium"
-            title="Reset to default isometric view"
-          >
-            🔄 Reset View
-          </button>
+          <div className="text-sm text-gray-600">
+            ⚡ Reactive grid • Auto-zoom
+          </div>
         </div>
 
         {isExpanded && (
           <div className="p-3 border-t border-gray-200/50">
-            <h5 className="text-xs font-semibold text-gray-600 mb-2">Focus on Eigenvector:</h5>
+            <h5 className="text-xs font-semibold text-gray-600 mb-2">Eigenvalues:</h5>
             <div className="space-y-1 max-h-32 overflow-y-auto">
               {eigenvalues.map((eig, index) => {
                 const vector3D = ensureVector3D(eig.vector);
                 return (
-                  <button
+                  <div
                     key={index}
-                    onClick={() => onFocusEigenvector(index)}
-                    className="w-full px-2 py-1 text-left rounded text-xs bg-green-100 text-green-800 hover:bg-green-200 transition-colors"
-                    title={`Focus camera on eigenvector ${index + 1}`}
+                    className="w-full px-2 py-1 rounded text-xs bg-green-100 text-green-800"
                   >
                     <span className="font-mono">
                       λ{index + 1} = {eig.value.toFixed(3)}
@@ -310,7 +292,7 @@ const EigenvalueCameraControlsUI: React.FC<{
                     <span className="text-xs text-gray-600">
                       v: ({vector3D.x.toFixed(1)}, {vector3D.y.toFixed(1)}, {vector3D.z.toFixed(1)})
                     </span>
-                  </button>
+                  </div>
                 );
               })}
             </div>
@@ -319,7 +301,7 @@ const EigenvalueCameraControlsUI: React.FC<{
 
         <div className="px-3 py-2 border-t border-gray-200/50 bg-gray-50/50">
           <p className="text-xs text-gray-500">
-            🎯 Intelligent camera with adaptive zoom limits
+            🎯 Intelligent camera with adaptive zoom
           </p>
         </div>
       </div>
@@ -330,7 +312,6 @@ const EigenvalueCameraControlsUI: React.FC<{
 // Main Canvas component
 const EigenvalueCanvas3D: React.FC<EigenvalueCanvas3DProps> = ({ width, height }) => {
   const { matrix3D, settings } = useVisualizer();
-  const { focusOnVector, autoFrame, resetView } = useCameraControls();
   
   // Calculate eigenvalues and eigenvectors
   const eigenvalues = calculateEigenvalues3D(matrix3D);
@@ -348,13 +329,6 @@ const EigenvalueCanvas3D: React.FC<EigenvalueCanvas3DProps> = ({ width, height }
     ...eigenvalues.map(eig => ensureVector3D(eig.vector)),
     ...testVectors
   ];
-
-  const handleFocusEigenvector = (index: number) => {
-    if (eigenvalues[index]) {
-      const vector3D = ensureVector3D(eigenvalues[index].vector);
-      focusOnVector(vector3D);
-    }
-  };
   
   return (
     <div 
@@ -364,7 +338,7 @@ const EigenvalueCanvas3D: React.FC<EigenvalueCanvas3DProps> = ({ width, height }
       {/* Enhanced Title and Matrix Information */}
       <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 border-b border-gray-200">
         <h3 className="text-lg font-bold text-gray-800 mb-2">
-          3D Eigenvalue & Eigenvector Analysis
+          ⚡ Reactive 3D Eigenvalue & Eigenvector Analysis • Smart Grid System
         </h3>
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -394,21 +368,28 @@ const EigenvalueCanvas3D: React.FC<EigenvalueCanvas3DProps> = ({ width, height }
 
       {/* Camera Controls UI */}
       <EigenvalueCameraControlsUI
-        onAutoFrame={autoFrame}
-        onFocusEigenvector={handleFocusEigenvector}
-        onResetView={resetView}
         eigenvalues={eigenvalues}
       />
       
       <Canvas
         camera={{
-          position: [8, 4, 8],
+          position: [8, 6, 8],
           fov: 50,
           near: 0.1,
           far: 1000
         }}
         shadows
+        performance={{ min: 0.5 }} // Maintain 30fps minimum
+        gl={{ 
+          antialias: true,
+          alpha: false,
+          powerPreference: "high-performance"
+        }}
+        dpr={[1, 2]} // Adaptive pixel ratio for performance
+        style={{ background: "white" }} // Set background to white
       >
+        {/* Set scene background to white */}
+        <color attach="background" args={["#ffffff"]} />
         {/* Lighting */}
         <ambientLight intensity={0.5} />
         <directionalLight
@@ -423,7 +404,6 @@ const EigenvalueCanvas3D: React.FC<EigenvalueCanvas3DProps> = ({ width, height }
             showXY={true}
             showXZ={true}
             showYZ={true}
-            opacity={0.7}
           />
         )}
         

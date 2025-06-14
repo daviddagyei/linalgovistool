@@ -515,7 +515,6 @@ const MatrixTransformationCanvas3D: React.FC<MatrixTransformationCanvas3DProps> 
             showXY={true}
             showXZ={true}
             showYZ={true}
-            opacity={0.8}
           />
         )}
         

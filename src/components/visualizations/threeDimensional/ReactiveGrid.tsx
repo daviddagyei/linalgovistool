@@ -140,12 +140,10 @@ export const ReactiveGridPlanes: React.FC<{
   showXY?: boolean;
   showXZ?: boolean;
   showYZ?: boolean;
-  opacity?: number;
 }> = ({
   showXY = true,
   showXZ = true,
-  showYZ = true,
-  opacity = 0.7
+  showYZ = true
 }) => {
   return (
     <group>
@@ -153,8 +151,8 @@ export const ReactiveGridPlanes: React.FC<{
       {showXY && (
         <ReactiveGrid
           plane="xy"
-          color={`rgba(160, 160, 160, ${opacity})`}
-          sectionColor={`rgba(128, 128, 128, ${opacity})`}
+          color="#a0a0a0"
+          sectionColor="#808080"
         />
       )}
       
@@ -162,8 +160,8 @@ export const ReactiveGridPlanes: React.FC<{
       {showXZ && (
         <ReactiveGrid
           plane="xz"
-          color={`rgba(160, 160, 160, ${opacity * 0.6})`}
-          sectionColor={`rgba(128, 128, 128, ${opacity * 0.6})`}
+          color="#b0b0b0"
+          sectionColor="#909090"
         />
       )}
       
@@ -171,8 +169,8 @@ export const ReactiveGridPlanes: React.FC<{
       {showYZ && (
         <ReactiveGrid
           plane="yz"
-          color={`rgba(160, 160, 160, ${opacity * 0.6})`}
-          sectionColor={`rgba(128, 128, 128, ${opacity * 0.6})`}
+          color="#b0b0b0"
+          sectionColor="#909090"
         />
       )}
     </group>

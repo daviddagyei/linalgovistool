@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
-import { Vector3, BufferGeometry, Float32BufferAttribute, Quaternion, Mesh } from 'three';
+import { Vector3, BufferGeometry, Quaternion, Group } from 'three';
 import * as THREE from 'three';
 import { useVisualizer } from '../../../context/VisualizerContext';
 import { isLinearlyIndependent3D, magnitude3D, crossProduct, normalize3D } from '../../../utils/mathUtils';
@@ -23,7 +23,7 @@ const VectorArrow: React.FC<{
   isActive?: boolean;
   showSpan?: boolean;
 }> = ({ vector, color, label, thickness = 0.02, isActive = false, showSpan = false }) => {
-  const meshRef = useRef<Mesh>(null);
+  const meshRef = useRef<Group>(null);
   
   useFrame((state) => {
     if (meshRef.current && isActive) {
@@ -173,9 +173,8 @@ const FastAnimatedSpanLine: React.FC<{
 const FastAnimatedSpanPlane: React.FC<{
   vectors: { x: number; y: number; z: number }[];
   color: string;
-  isIndependent: boolean;
   opacity?: number;
-}> = ({ vectors, color, isIndependent, opacity = 0.3 }) => {
+}> = ({ vectors, color, opacity = 0.3 }) => {
   const pointsRef = useRef<THREE.Points>(null);
   const lastUpdateTime = useRef<number>(0);
   
@@ -283,7 +282,6 @@ const FastAnimatedSpanVisualization: React.FC<{
         <FastAnimatedSpanPlane 
           vectors={selectedVectors} 
           color={color} 
-          isIndependent={isIndependent}
           opacity={0.4}
         />
         <FastAnimatedSpanLine vector={selectedVectors[0]} color={color} />
@@ -304,13 +302,11 @@ const FastAnimatedSpanVisualization: React.FC<{
           <FastAnimatedSpanPlane 
             vectors={[selectedVectors[0], selectedVectors[1]]} 
             color={colorScheme.spans.independent.stroke} 
-            isIndependent={true}
             opacity={0.2}
           />
           <FastAnimatedSpanPlane 
             vectors={[selectedVectors[1], selectedVectors[2]]} 
             color={colorScheme.spans.independent.stroke} 
-            isIndependent={true}
             opacity={0.15}
           />
         </group>
@@ -328,7 +324,6 @@ const FastAnimatedSpanVisualization: React.FC<{
       return <FastAnimatedSpanPlane 
         vectors={effectiveVectors} 
         color={colorScheme.spans.dependent.stroke} 
-        isIndependent={false}
         opacity={0.25}
       />;
     }
@@ -337,7 +332,8 @@ const FastAnimatedSpanVisualization: React.FC<{
   return null;
 };
 
-// Camera Controls UI Component
+/*
+// Camera Controls UI Component (unused)
 const CameraControlsUI: React.FC<{
   onAutoFrame: () => void;
   onFocusVector: (index: number) => void;
@@ -350,7 +346,6 @@ const CameraControlsUI: React.FC<{
   return (
     <div className="absolute top-20 right-4 z-20">
       <div className="bg-white/95 backdrop-blur-sm rounded-lg border border-gray-200/50 shadow-lg">
-        {/* Camera Controls Header */}
         <div className="flex items-center justify-between p-3 border-b border-gray-200/50">
           <h4 className="text-sm font-semibold text-gray-700">Camera Controls</h4>
           <button
@@ -361,7 +356,6 @@ const CameraControlsUI: React.FC<{
           </button>
         </div>
 
-        {/* Always visible essential controls */}
         <div className="p-3 space-y-2">
           <button
             onClick={onAutoFrame}
@@ -380,7 +374,6 @@ const CameraControlsUI: React.FC<{
           </button>
         </div>
 
-        {/* Expandable vector focus controls */}
         {isExpanded && (
           <div className="p-3 border-t border-gray-200/50">
             <h5 className="text-xs font-semibold text-gray-600 mb-2">Focus on Vector:</h5>
@@ -406,7 +399,6 @@ const CameraControlsUI: React.FC<{
           </div>
         )}
 
-        {/* Camera info */}
         <div className="px-3 py-2 border-t border-gray-200/50 bg-gray-50/50">
           <p className="text-xs text-gray-500">
             🎯 Intelligent camera with adaptive zoom limits
@@ -416,6 +408,7 @@ const CameraControlsUI: React.FC<{
     </div>
   );
 };
+*/
 
 // Enhanced Draggable Legend (simplified for this version)
 const DraggableLegend: React.FC<{
@@ -600,7 +593,7 @@ const DraggableLegend: React.FC<{
 // Main Canvas component
 const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) => {
   const { vectors3D, settings, subspaceSettings, updateSubspaceSettings } = useVisualizer();
-  const [hoveredVector, setHoveredVector] = useState<number | null>(null);
+  const [hoveredVector] = useState<number | null>(null);
 
   // Enhanced color scheme
   const colorScheme = {
@@ -627,10 +620,12 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
     updateSubspaceSettings({ showSpan: newShowSpan });
   };
 
+  /*
   const handleFocusVector = (index: number) => {
     // Camera focusing will be handled by the CameraController component
     console.log(`Focus on vector ${index}`);
   };
+  */
 
   return (
     <div 
@@ -677,7 +672,6 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
             showXY={true}
             showXZ={true}
             showYZ={true}
-            opacity={0.8}
           />
         )}
         
