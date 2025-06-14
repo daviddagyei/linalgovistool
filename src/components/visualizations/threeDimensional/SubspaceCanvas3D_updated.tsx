@@ -1,5 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
-import ReactDOM from 'react-dom';
+import React, { useMemo, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
 import { Vector3, BufferGeometry } from 'three';
@@ -9,6 +8,10 @@ import { isLinearlyIndependent3D, magnitude3D, crossProduct, normalize3D } from 
 import { ReactiveGridPlanes } from './ContentAwareGrid';
 import { CameraController, useCameraControls } from './CameraController';
 import { AdaptiveVectorArrow } from './AdaptiveVectorArrow';
+import { ResponsiveLegend, VectorMagnitudeIndicator } from '../../ui/ResponsiveUI';
+import { ResponsiveCameraControls } from '../../ui/ResponsiveCameraControls';
+import { AccessibilitySettings } from '../../ui/AccessibilitySettings';
+import { useResponsiveViewport, useAccessibility, useTouchGestures } from '../../../hooks/useResponsiveUI';
 // import { PerformanceMonitor } from './PerformanceMonitor'; // Uncomment for performance debugging
 
 interface SubspaceCanvas3DProps {
@@ -180,6 +183,7 @@ const FastAnimatedSpanVisualization: React.FC<{
   selectedIndices: boolean[];
   colorScheme: any;
 }> = ({ vectors, selectedIndices, colorScheme }) => {
+  // Note: reducedComplexity can be added later for performance optimization
   const selectedVectors = vectors.filter((_, i) => selectedIndices[i]);
   const isIndependent = isLinearlyIndependent3D(selectedVectors);
   
@@ -247,283 +251,33 @@ const FastAnimatedSpanVisualization: React.FC<{
   return null;
 };
 
-// Camera Controls UI Component
-const CameraControlsUI: React.FC<{
-  onAutoFrame: () => void;
-  onFocusVector: (index: number) => void;
-  onResetView: () => void;
-  vectors: { x: number; y: number; z: number }[];
-  selectedIndices: boolean[];
-}> = ({ onAutoFrame, onFocusVector, onResetView, vectors, selectedIndices }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+// NOTE: CameraControlsUI component replaced with ResponsiveCameraControls
 
-  return (
-    <div className="absolute top-20 right-4 z-20">
-      <div className="bg-white/95 backdrop-blur-sm rounded-lg border border-gray-200/50 shadow-lg">
-        {/* Camera Controls Header */}
-        <div className="flex items-center justify-between p-3 border-b border-gray-200/50">
-          <h4 className="text-sm font-semibold text-gray-700">Camera Controls</h4>
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="text-gray-500 hover:text-gray-700 transition-colors"
-          >
-            {isExpanded ? '▼' : '▶'}
-          </button>
-        </div>
-
-        {/* Always visible essential controls */}
-        <div className="p-3 space-y-2">
-          <button
-            onClick={onAutoFrame}
-            className="w-full px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors text-sm font-medium"
-            title="Automatically frame all vectors in view"
-          >
-            📐 Auto-Frame All
-          </button>
-          
-          <button
-            onClick={onResetView}
-            className="w-full px-3 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors text-sm font-medium"
-            title="Reset to default isometric view"
-          >
-            🔄 Reset View
-          </button>
-        </div>
-
-        {/* Expandable vector focus controls */}
-        {isExpanded && (
-          <div className="p-3 border-t border-gray-200/50">
-            <h5 className="text-xs font-semibold text-gray-600 mb-2">Focus on Vector:</h5>
-            <div className="space-y-1 max-h-32 overflow-y-auto">
-              {vectors.map((vector, index) => (
-                <button
-                  key={index}
-                  onClick={() => onFocusVector(index)}
-                  className={`w-full px-2 py-1 text-left rounded text-xs transition-colors ${
-                    selectedIndices[index]
-                      ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                  title={`Focus camera on vector v${index + 1}`}
-                >
-                  <span className="font-mono">
-                    v{index + 1}: ({vector.x.toFixed(1)}, {vector.y.toFixed(1)}, {vector.z.toFixed(1)})
-                  </span>
-                  {selectedIndices[index] && <span className="ml-1">✨</span>}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Camera info */}
-        <div className="px-3 py-2 border-t border-gray-200/50 bg-gray-50/50">
-          <p className="text-xs text-gray-500">
-            🎯 Intelligent camera with adaptive zoom limits
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Enhanced Draggable Legend (simplified for this version)
-const DraggableLegend: React.FC<{
-  vectors: { x: number; y: number; z: number }[];
-  selectedIndices: boolean[];
-  isIndependent: boolean;
-  onToggleSpan: (index: number) => void;
-  colorScheme: any;
-}> = ({ vectors, selectedIndices, isIndependent, onToggleSpan, colorScheme }) => {
-  const [position, setPosition] = useState({ 
-    x: window.innerWidth - 320,
-    y: 16
-  });
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-
-  React.useEffect(() => {
-    const updatePosition = () => {
-      if (!isDragging) {
-        setPosition(prev => ({
-          x: Math.max(16, window.innerWidth - 320),
-          y: prev.y
-        }));
-      }
-    };
-
-    window.addEventListener('resize', updatePosition);
-    updatePosition();
-
-    return () => window.removeEventListener('resize', updatePosition);
-  }, [isDragging]);
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true);
-    setDragOffset({
-      x: e.clientX - position.x,
-      y: e.clientY - position.y,
-    });
-    e.preventDefault();
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    setIsDragging(true);
-    setDragOffset({
-      x: touch.clientX - position.x,
-      y: touch.clientY - position.y,
-    });
-    e.preventDefault();
-  };
-
-  const handleMouseMove = (e: MouseEvent) => {
-    if (isDragging) {
-      setPosition({
-        x: e.clientX - dragOffset.x,
-        y: e.clientY - dragOffset.y,
-      });
-    }
-  };
-
-  const handleTouchMove = (e: TouchEvent) => {
-    if (isDragging && e.touches.length > 0) {
-      const touch = e.touches[0];
-      setPosition({
-        x: touch.clientX - dragOffset.x,
-        y: touch.clientY - dragOffset.y,
-      });
-      e.preventDefault();
-    }
-  };
-
-  const handleMouseUp = () => setIsDragging(false);
-  const handleTouchEnd = () => setIsDragging(false);
-
-  React.useEffect(() => {
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.addEventListener('touchmove', handleTouchMove, { passive: false });
-      document.addEventListener('touchend', handleTouchEnd);
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-        document.removeEventListener('touchmove', handleTouchMove);
-        document.removeEventListener('touchend', handleTouchEnd);
-      };
-    }
-  }, [isDragging, dragOffset]);
-
-  const selectedCount = selectedIndices.filter(Boolean).length;
-
-  return ReactDOM.createPortal(
-    <div
-      className="fixed bg-white/95 backdrop-blur-sm rounded-xl border border-gray-200/50 p-4 shadow-xl cursor-move select-none z-50 touch-none"
-      style={{
-        left: position.x,
-        top: position.y,
-        transform: isDragging ? 'scale(1.02)' : 'scale(1)',
-        transition: isDragging ? 'none' : 'transform 0.2s ease',
-        minWidth: '300px',
-        maxWidth: '90vw',
-      }}
-      onMouseDown={handleMouseDown}
-      onTouchStart={handleTouchStart}
-    >
-      <div className="flex items-center justify-between mb-4">
-        <h4 className="text-lg font-bold text-gray-800">3D Subspace Visualization</h4>
-        <div className="text-xs text-gray-400">⋮⋮</div>
-      </div>
-      
-      {/* Vector Controls */}
-      <div className="space-y-3 mb-4">
-        {vectors.map((vector, index) => (
-          <div 
-            key={index} 
-            className="flex items-center p-2 rounded-lg bg-gray-50/80 hover:bg-gray-100/80 transition-colors"
-          >
-            <button
-              onClick={() => onToggleSpan(index)}
-              className={`w-8 h-8 rounded-full flex-shrink-0 mr-3 transition-all duration-200 ${
-                selectedIndices[index]
-                  ? 'bg-blue-500 text-white scale-110'
-                  : 'bg-gray-300 text-gray-600 hover:bg-gray-400'
-              }`}
-              style={{
-                backgroundColor: selectedIndices[index] 
-                  ? colorScheme.vectors[index % colorScheme.vectors.length].primary 
-                  : undefined
-              }}
-            >
-              {selectedIndices[index] ? '✓' : '+'}
-            </button>
-            <div className="flex-1">
-              <div className="flex items-center">
-                <span className="font-semibold text-sm">
-                  v{index + 1}
-                </span>
-                <span className="text-xs text-gray-500 ml-2 font-mono">
-                  ({vector.x.toFixed(2)}, {vector.y.toFixed(2)}, {vector.z.toFixed(2)})
-                </span>
-              </div>
-              {selectedIndices[index] && (
-                <span className="text-xs text-blue-600 font-medium">
-                  ✨ Spanning subspace
-                </span>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-      
-      {/* Analysis Panel */}
-      {selectedCount > 0 && (
-        <div className={`p-4 rounded-lg border-l-4 ${
-          isIndependent ? 'bg-green-50 border-green-400' : 'bg-orange-50 border-orange-400'
-        }`}>
-          <h5 className="font-semibold text-sm mb-2">
-            {isIndependent ? '✅ Linear Independence' : '⚠️ Linear Dependence'}
-          </h5>
-          <p className="text-xs text-gray-600 mb-2">
-            {selectedCount} vector{selectedCount > 1 ? 's' : ''} selected
-          </p>
-          <p className="text-xs">
-            {selectedCount === 1 && 'Spans a line through origin'}
-            {selectedCount === 2 && isIndependent && 'Spans a plane through origin'}
-            {selectedCount === 2 && !isIndependent && 'Spans a line (vectors are parallel)'}
-            {selectedCount === 3 && isIndependent && 'Spans all of 3D space'}
-            {selectedCount === 3 && !isIndependent && 'Spans a plane or line (vectors are coplanar)'}
-          </p>
-        </div>
-      )}
-      
-      {/* Performance & Feature Info */}
-      <div className="mt-4 pt-4 border-t border-gray-200/50 text-xs text-gray-500 space-y-1">
-        <div><span className="font-medium">🚀 Adaptive Rendering:</span> LOD + Smart scaling</div>
-        <div><span className="font-medium">📏 Magnitude Aware:</span> Color intensity mapping</div>
-        <div><span className="font-medium">🎯 Smart Labels:</span> Anti-overlap positioning</div>
-        <div><span className="font-medium">📐 Reactive Grid:</span> Content-aware spacing</div>
-        <div><span className="font-medium">⚡ Performance:</span> 60fps with dynamic geometry</div>
-      </div>
-    </div>,
-    document.body
-  );
-};
+// NOTE: DraggableLegend component replaced with ResponsiveLegend
 
 // Main Canvas component
 const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) => {
   const { vectors3D, settings, subspaceSettings, updateSubspaceSettings } = useVisualizer();
   const { focusOnVector, autoFrame, resetView } = useCameraControls();
+  const viewport = useResponsiveViewport();
+  const { preferences } = useAccessibility();
+  const { isTouch, handlers } = useTouchGestures();
 
-  // Enhanced color scheme
+  // Convert touch handlers to React event handlers
+  const reactHandlers = {
+    onTouchStart: (e: React.TouchEvent) => handlers.onTouchStart(e.nativeEvent),
+    onTouchMove: (e: React.TouchEvent) => handlers.onTouchMove(e.nativeEvent),
+    onTouchEnd: () => handlers.onTouchEnd()
+  };
+
+  // Enhanced color scheme with accessibility support
   const colorScheme = {
     vectors: [
-      { primary: '#3B82F6', secondary: '#93C5FD' },
-      { primary: '#EF4444', secondary: '#FCA5A5' },
-      { primary: '#10B981', secondary: '#6EE7B7' },
-      { primary: '#8B5CF6', secondary: '#C4B5FD' },
-      { primary: '#F59E0B', secondary: '#FCD34D' }
+      { primary: preferences.highContrast ? '#000080' : '#3B82F6', secondary: '#93C5FD' },
+      { primary: preferences.highContrast ? '#800000' : '#EF4444', secondary: '#FCA5A5' },
+      { primary: preferences.highContrast ? '#008000' : '#10B981', secondary: '#6EE7B7' },
+      { primary: preferences.highContrast ? '#800080' : '#8B5CF6', secondary: '#C4B5FD' },
+      { primary: preferences.highContrast ? '#808000' : '#F59E0B', secondary: '#FCD34D' }
     ],
     spans: {
       independent: { fill: 'rgba(59, 130, 246, 0.15)', stroke: '#3B82F6' },
@@ -551,112 +305,127 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
     <div 
       className="subspace-canvas-3d bg-gradient-to-br from-gray-50 to-white rounded-xl shadow-xl overflow-hidden relative"
       style={{ width, height }}
+      {...(isTouch ? reactHandlers : {})}
     >
       {/* Enhanced Header with Adaptive Rendering Info */}
-      <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-green-50 to-blue-50 p-4 border-b border-gray-200/50 z-10">
-        <h3 className="text-lg font-bold text-gray-800 mb-1">
+      <div className={`absolute top-0 left-0 right-0 bg-gradient-to-r from-green-50 to-blue-50 border-b border-gray-200/50 z-10 ${
+        viewport.isMobile ? 'p-2' : 'p-4'
+      }`}>
+        <h3 className={`font-bold text-gray-800 mb-1 ${
+          viewport.isMobile ? 'text-base' : 'text-lg'
+        }`}>
           ⚡ Adaptive 3D Vector Visualization • Content-Aware Grid System
         </h3>
-        <p className="text-sm text-gray-600">
+        <p className={`text-gray-600 ${
+          viewport.isMobile ? 'text-xs' : 'text-sm'
+        }`}>
           Smart scaling • Dynamic LOD • Content-aware grids • Multi-level spacing • Auto-magnitude reference
         </p>
       </div>
 
-      {/* Camera Controls UI */}
-      <CameraControlsUI
+      {/* Responsive Camera Controls */}
+      <ResponsiveCameraControls
         onAutoFrame={autoFrame}
         onFocusVector={handleFocusVector}
         onResetView={resetView}
         vectors={vectors3D}
         selectedIndices={subspaceSettings.showSpan}
       />
+
+      {/* Accessibility Settings Panel */}
+      <AccessibilitySettings />
       
       <Canvas
         camera={{
           position: [8, 6, 8],
-          fov: 50,
+          fov: viewport.isMobile ? 60 : 50,
           near: 0.1,
           far: 1000
         }}
         shadows
-        style={{ marginTop: '80px', height: height - 80 }}
+        style={{ 
+          marginTop: viewport.isMobile ? '120px' : '80px', 
+          height: height - (viewport.isMobile ? 120 : 80) 
+        }}
         performance={{ min: 0.5 }} // Maintain 30fps minimum
         gl={{ 
-          antialias: true,
+          antialias: !viewport.isMobile, // Disable on mobile for performance
           alpha: false,
           powerPreference: "high-performance"
         }}
-        dpr={[1, 2]} // Adaptive pixel ratio for performance
+        dpr={viewport.isMobile ? [1, 1.5] : [1, 2]} // Adaptive pixel ratio for performance
       >
-        {/* Enhanced Lighting */}
-        <ambientLight intensity={0.4} />
+        {/* Enhanced Lighting with reduced intensity on mobile */}
+        <ambientLight intensity={viewport.isMobile ? 0.3 : 0.4} />
         <directionalLight
           position={[10, 10, 5]}
-          intensity={1}
+          intensity={viewport.isMobile ? 0.6 : 0.8}
           castShadow
-          shadow-mapSize-width={2048}
-          shadow-mapSize-height={2048}
+          shadow-mapSize-width={viewport.isMobile ? 512 : 1024}
+          shadow-mapSize-height={viewport.isMobile ? 512 : 1024}
+          shadow-camera-far={50}
+          shadow-camera-left={-10}
+          shadow-camera-right={10}
+          shadow-camera-top={10}
+          shadow-camera-bottom={-10}
         />
-        <pointLight position={[-10, -10, -10]} intensity={0.3} />
-        
-        {/* Enhanced Content-Aware Reactive Grid System */}
-        {settings.showGrid && (
-          <ReactiveGridPlanes 
-            vectors={vectors3D}
-            showXY={true}
-            showXZ={true}
-            showYZ={true}
-            opacity={0.8}
-            adaptiveMode="hybrid"
-            showMultiLevel={true}
-          />
-        )}
-        
-        {/* Enhanced Coordinate Axes */}
+
+        {/* Content-Aware Grid System */}
+        <ReactiveGridPlanes
+          vectors={vectors3D}
+          showXY={true}
+          showXZ={true}
+          showYZ={true}
+          opacity={0.8}
+          adaptiveMode="hybrid"
+          showMultiLevel={true}
+        />
+
+        {/* Simplified Axes for mobile */}
         {settings.showAxes && (
           <>
             {/* X axis (red) */}
             <group>
-              <mesh position={[2.5, 0, 0]} rotation={[0, 0, -Math.PI/2]}>
-                <cylinderGeometry args={[0.02, 0.02, 5, 8]} />
+              <mesh position={[2.5, 0, 0]} rotation={[0, 0, Math.PI/2]}>
+                <cylinderGeometry args={[0.02, 0.02, 5, viewport.isMobile ? 4 : 8]} />
                 <meshPhongMaterial color="#ff4444" />
               </mesh>
-              <mesh position={[5, 0, 0]} rotation={[0, 0, -Math.PI/2]}>
-                <coneGeometry args={[0.06, 0.2, 8]} />
+              <mesh position={[5, 0, 0]} rotation={[0, 0, Math.PI/2]}>
+                <coneGeometry args={[0.06, 0.2, viewport.isMobile ? 4 : 8]} />
                 <meshPhongMaterial color="#ff4444" />
               </mesh>
-              <Text position={[5.5, 0, 0]} fontSize={0.3} color="#ff4444">X</Text>
+              <Text position={[5.5, 0, 0]} fontSize={viewport.isMobile ? 0.2 : 0.3} color="#ff4444">X</Text>
             </group>
             
             {/* Y axis (green) */}
             <group>
               <mesh position={[0, 2.5, 0]}>
-                <cylinderGeometry args={[0.02, 0.02, 5, 8]} />
+                <cylinderGeometry args={[0.02, 0.02, 5, viewport.isMobile ? 4 : 8]} />
                 <meshPhongMaterial color="#44ff44" />
               </mesh>
               <mesh position={[0, 5, 0]}>
-                <coneGeometry args={[0.06, 0.2, 8]} />
+                <coneGeometry args={[0.06, 0.2, viewport.isMobile ? 4 : 8]} />
                 <meshPhongMaterial color="#44ff44" />
               </mesh>
-              <Text position={[0, 5.5, 0]} fontSize={0.3} color="#44ff44">Y</Text>
+              <Text position={[0, 5.5, 0]} fontSize={viewport.isMobile ? 0.2 : 0.3} color="#44ff44">Y</Text>
             </group>
             
             {/* Z axis (blue) */}
             <group>
               <mesh position={[0, 0, 2.5]} rotation={[Math.PI/2, 0, 0]}>
-                <cylinderGeometry args={[0.02, 0.02, 5, 8]} />
+                <cylinderGeometry args={[0.02, 0.02, 5, viewport.isMobile ? 4 : 8]} />
                 <meshPhongMaterial color="#4444ff" />
               </mesh>
               <mesh position={[0, 0, 5]} rotation={[Math.PI/2, 0, 0]}>
-                <coneGeometry args={[0.06, 0.2, 8]} />
+                <coneGeometry args={[0.06, 0.2, viewport.isMobile ? 4 : 8]} />
                 <meshPhongMaterial color="#4444ff" />
               </mesh>
-              <Text position={[0, 0, 5.5]} fontSize={0.3} color="#4444ff">Z</Text>
+              <Text position={[0, 0, 5.5]} fontSize={viewport.isMobile ? 0.2 : 0.3} color="#4444ff">Z</Text>
             </group>
           </>
         )}
         
-        {/* OPTIMIZED: Fast Animated Span Visualization */}
+        {/* OPTIMIZED: Fast Animated Span Visualization with reduced complexity on mobile */}
         <FastAnimatedSpanVisualization
           vectors={vectors3D}
           selectedIndices={subspaceSettings.showSpan}
@@ -670,7 +439,7 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
             vector={vector}
             color={colorScheme.vectors[i % colorScheme.vectors.length].primary}
             label={`v${i + 1}`}
-            baseThickness={0.025}
+            baseThickness={viewport.isMobile ? 0.02 : 0.025}
             isActive={false}
             showSpan={subspaceSettings.showSpan[i]}
             index={i}
@@ -686,14 +455,25 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
         />
       </Canvas>
       
-      {/* Enhanced Draggable Legend */}
-      <DraggableLegend 
+      {/* Responsive Legend with Vector Magnitude Indicators */}
+      <ResponsiveLegend 
         vectors={vectors3D}
         selectedIndices={subspaceSettings.showSpan}
         isIndependent={isIndependent}
         onToggleSpan={toggleSpan}
         colorScheme={colorScheme}
       />
+
+      {/* Vector Magnitude Indicators */}
+      <div className={`absolute bottom-4 left-4 ${
+        viewport.isMobile ? 'bottom-2 left-2' : 'bottom-4 left-4'
+      }`}>
+        <VectorMagnitudeIndicator
+          vectors={vectors3D}
+          colorScheme={colorScheme}
+          compact={viewport.isMobile}
+        />
+      </div>
     </div>
   );
 };

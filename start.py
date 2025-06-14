@@ -30,7 +30,7 @@ def start_app():
     sys.path.insert(0, backend_path)
     
     # Import and start the Flask app
-    from app import app
+    from backend.app import app
     
     # Get port from environment (Render sets this automatically)
     port = int(os.environ.get('PORT', 5000))
