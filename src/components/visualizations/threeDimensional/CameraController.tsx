@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { Vector3, Box3, Sphere, PerspectiveCamera } from 'three';
+import { Vector3, Box3, Sphere } from 'three';
 import { Vector3D } from '../../../types';
 
 interface CameraControllerProps {
