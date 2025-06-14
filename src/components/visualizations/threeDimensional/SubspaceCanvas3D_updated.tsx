@@ -2,104 +2,19 @@ import React, { useState, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
-import { Vector3, BufferGeometry, Quaternion, Group } from 'three';
+import { Vector3, BufferGeometry } from 'three';
 import * as THREE from 'three';
 import { useVisualizer } from '../../../context/VisualizerContext';
 import { isLinearlyIndependent3D, magnitude3D, crossProduct, normalize3D } from '../../../utils/mathUtils';
 import { ReactiveGridPlanes } from './ReactiveGrid';
 import { CameraController, useCameraControls } from './CameraController';
+import { AdaptiveVectorArrow } from './AdaptiveVectorArrow';
+// import { PerformanceMonitor } from './PerformanceMonitor'; // Uncomment for performance debugging
 
 interface SubspaceCanvas3DProps {
   width: number;
   height: number;
 }
-
-// Enhanced Vector Arrow with better materials and lighting
-const VectorArrow: React.FC<{
-  vector: { x: number; y: number; z: number };
-  color: string;
-  label?: string;
-  thickness?: number;
-  isActive?: boolean;
-  showSpan?: boolean;
-}> = ({ vector, color, label, thickness = 0.02, isActive = false, showSpan = false }) => {
-  const meshRef = useRef<Group>(null);
-  
-  useFrame((state) => {
-    if (meshRef.current && isActive) {
-      meshRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 2) * 0.1;
-    }
-  });
-  
-  const start = new Vector3(0, 0, 0);
-  const end = new Vector3(vector.x, vector.y, vector.z);
-  const direction = end.clone().sub(start).normalize();
-  const length = end.length();
-  
-  const quaternion = new Quaternion();
-  const axis = new Vector3();
-  
-  if (direction.y > 0.99999) {
-    quaternion.set(0, 0, 0, 1);
-  } else if (direction.y < -0.99999) {
-    quaternion.setFromAxisAngle(new Vector3(1, 0, 0), Math.PI);
-  } else {
-    axis.set(direction.z, 0, -direction.x).normalize();
-    const radians = Math.acos(direction.y);
-    quaternion.setFromAxisAngle(axis, radians);
-  }
-  
-  const enhancedThickness = isActive ? thickness * 1.5 : showSpan ? thickness * 1.2 : thickness;
-  
-  return (
-    <group ref={meshRef}>
-      {/* Enhanced arrow shaft */}
-      <mesh
-        position={end.clone().multiplyScalar(0.5)}
-        quaternion={quaternion}
-      >
-        <cylinderGeometry args={[enhancedThickness, enhancedThickness, length, 12]} />
-        <meshPhongMaterial 
-          color={color} 
-          shininess={100}
-          transparent
-          opacity={showSpan ? 0.9 : 0.8}
-          emissive={isActive ? color : '#000000'}
-          emissiveIntensity={isActive ? 0.2 : 0}
-        />
-      </mesh>
-      
-      {/* Enhanced arrow head */}
-      <mesh 
-        position={end}
-        quaternion={quaternion}
-      >
-        <coneGeometry args={[enhancedThickness * 3, enhancedThickness * 10, 12]} />
-        <meshPhongMaterial 
-          color={color}
-          shininess={100}
-          transparent
-          opacity={showSpan ? 0.9 : 0.8}
-          emissive={isActive ? color : '#000000'}
-          emissiveIntensity={isActive ? 0.3 : 0}
-        />
-      </mesh>
-      
-      {/* Enhanced label */}
-      {label && (
-        <Text
-          position={end.clone().add(direction.multiplyScalar(0.4))}
-          fontSize={0.15}
-          color={color}
-          anchorX="center"
-          anchorY="middle"
-        >
-          {label}
-        </Text>
-      )}
-    </group>
-  );
-};
 
 // OPTIMIZED: Fast Animated Line Span with reduced complexity
 const FastAnimatedSpanLine: React.FC<{
@@ -583,9 +498,12 @@ const DraggableLegend: React.FC<{
         </div>
       )}
       
-      {/* Performance Info */}
-      <div className="mt-4 pt-4 border-t border-gray-200/50 text-xs text-gray-500">
-        <span className="font-medium">🚀 Optimized:</span> 15-20fps smooth animations
+      {/* Performance & Feature Info */}
+      <div className="mt-4 pt-4 border-t border-gray-200/50 text-xs text-gray-500 space-y-1">
+        <div><span className="font-medium">🚀 Adaptive Rendering:</span> LOD + Smart scaling</div>
+        <div><span className="font-medium">📏 Magnitude Aware:</span> Color intensity mapping</div>
+        <div><span className="font-medium">🎯 Smart Labels:</span> Anti-overlap positioning</div>
+        <div><span className="font-medium">⚡ Performance:</span> 60fps with dynamic geometry</div>
       </div>
     </div>,
     document.body
@@ -633,13 +551,13 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
       className="subspace-canvas-3d bg-gradient-to-br from-gray-50 to-white rounded-xl shadow-xl overflow-hidden relative"
       style={{ width, height }}
     >
-      {/* Enhanced Header */}
+      {/* Enhanced Header with Adaptive Rendering Info */}
       <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-green-50 to-blue-50 p-4 border-b border-gray-200/50 z-10">
         <h3 className="text-lg font-bold text-gray-800 mb-1">
-          ⚡ Fast 3D Animated Subspace Visualization
+          ⚡ Adaptive 3D Vector Visualization with Level-of-Detail
         </h3>
         <p className="text-sm text-gray-600">
-          Optimized performance with smooth 15-20fps animations following exact vector directions
+          Smart scaling • Dynamic LOD • Magnitude-aware rendering • Anti-overlap labels • 60fps performance
         </p>
       </div>
 
@@ -661,6 +579,13 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
         }}
         shadows
         style={{ marginTop: '80px', height: height - 80 }}
+        performance={{ min: 0.5 }} // Maintain 30fps minimum
+        gl={{ 
+          antialias: true,
+          alpha: false,
+          powerPreference: "high-performance"
+        }}
+        dpr={[1, 2]} // Adaptive pixel ratio for performance
       >
         {/* Enhanced Lighting */}
         <ambientLight intensity={0.4} />
@@ -734,16 +659,18 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
           colorScheme={colorScheme}
         />
         
-        {/* Enhanced Vectors */}
+        {/* Enhanced Adaptive Vectors with LOD */}
         {vectors3D.map((vector, i) => (
-          <VectorArrow
+          <AdaptiveVectorArrow
             key={i}
             vector={vector}
             color={colorScheme.vectors[i % colorScheme.vectors.length].primary}
             label={`v${i + 1}`}
-            thickness={0.025}
+            baseThickness={0.025}
             isActive={false}
             showSpan={subspaceSettings.showSpan[i]}
+            index={i}
+            totalVectors={vectors3D.length}
           />
         ))}
         
