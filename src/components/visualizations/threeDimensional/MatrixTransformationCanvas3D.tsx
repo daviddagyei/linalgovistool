@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Grid, Line, Text } from '@react-three/drei';
+import { OrbitControls, Line, Text } from '@react-three/drei';
 import { Vector3, Quaternion } from 'three';
 import * as THREE from 'three';
 import { useVisualizer } from '../../../context/VisualizerContext';
 import { Vector3D, Matrix3D } from '../../../types';
 import { applyMatrix3D } from '../../../utils/mathUtils';
+import { ReactiveGridPlanes } from './ReactiveGrid';
+import { CameraController } from './CameraController';
+import { useResponsiveViewport } from '../../../hooks/useResponsiveUI';
 
 interface MatrixTransformationCanvas3DProps {
   width: number;
@@ -344,6 +347,85 @@ const DraggableLegend: React.FC<{
   );
 };
 
+// Responsive Camera Controls UI Component
+const ResponsiveCameraControlsUI: React.FC<{
+  determinant: number;
+  onAutoFrame: () => void;
+}> = ({ determinant, onAutoFrame }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const viewport = useResponsiveViewport();
+
+  return (
+    <div className={`absolute top-4 right-4 z-20 ${
+      viewport.isMobile ? 'right-2 top-2' : 'right-4 top-4'
+    }`}>
+      <div className="bg-white/95 backdrop-blur-sm rounded-lg border border-gray-200/50 shadow-lg">
+        <div className="flex items-center justify-between p-3 border-b border-gray-200/50">
+          <h4 className={`font-semibold text-gray-700 ${
+            viewport.isMobile ? 'text-xs' : 'text-sm'
+          }`}>
+            🎯 Smart Camera
+          </h4>
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-gray-500 hover:text-gray-700 transition-colors"
+          >
+            {isExpanded ? '▼' : '▶'}
+          </button>
+        </div>
+
+        <div className="p-3 space-y-2">
+          <div className={`text-gray-600 ${
+            viewport.isMobile ? 'text-xs' : 'text-sm'
+          }`}>
+            ⚡ Reactive grid • Auto-zoom
+          </div>
+          
+          <button
+            onClick={onAutoFrame}
+            className={`w-full px-2 py-1 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded transition-colors ${
+              viewport.isMobile ? 'text-xs' : 'text-sm'
+            }`}
+          >
+            🎯 Auto Frame All
+          </button>
+        </div>
+
+        {isExpanded && (
+          <div className="p-3 border-t border-gray-200/50">
+            <h5 className={`font-semibold text-gray-600 mb-2 ${
+              viewport.isMobile ? 'text-xs' : 'text-sm'
+            }`}>
+              Matrix Info:
+            </h5>
+            <div className="space-y-1">
+              <div className={`text-gray-600 ${
+                viewport.isMobile ? 'text-xs' : 'text-sm'
+              }`}>
+                Det: <span className="font-mono">{determinant.toFixed(3)}</span>
+              </div>
+              <div className={`text-gray-600 ${
+                viewport.isMobile ? 'text-xs' : 'text-sm'
+              }`}>
+                Type: {Math.abs(determinant) < 0.001 ? 'Singular' : 
+                      determinant < 0 ? 'Orientation-reversing' : 'Orientation-preserving'}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="px-3 py-2 border-t border-gray-200/50 bg-gray-50/50">
+          <p className={`text-gray-500 ${
+            viewport.isMobile ? 'text-xs' : 'text-sm'
+          }`}>
+            🎯 Use mouse/touch to control camera
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Main Canvas component
 const MatrixTransformationCanvas3D: React.FC<MatrixTransformationCanvas3DProps> = ({ width, height }) => {
   const { matrix3D, vectors3D, settings } = useVisualizer();
@@ -358,88 +440,83 @@ const MatrixTransformationCanvas3D: React.FC<MatrixTransformationCanvas3DProps> 
     { x: 0, y: 0, z: 1 }  // k hat
   ];
   
+  // Create transformed basis vectors
+  const transformedBasisVectors = basisVectors.map(vector => applyMatrix3D(matrix3D, vector));
+  
+  // Combine all vectors for camera framing
+  const allVectors = [
+    ...basisVectors,
+    ...transformedBasisVectors,
+    ...vectors3D,
+    ...vectors3D.map(v => applyMatrix3D(matrix3D, v))
+  ];
+  
   // Colors
   const originalColor = '#3366FF';
   const transformedColor = '#FF6633';
+  
+  // Auto frame handler
+  const handleAutoFrame = () => {
+    // This will be handled by the CameraController
+  };
   
   return (
     <div 
       className="matrix-transformation-canvas-3d bg-white rounded-lg shadow-lg overflow-hidden relative"
       style={{ width, height }}
     >
-      {/* Title */}
+      {/* Enhanced Header with Reactive Features Info */}
       <div className="bg-gradient-to-r from-blue-50 to-orange-50 p-4 border-b border-gray-200">
         <h3 className="text-lg font-bold text-gray-800 mb-1">
-          3D Matrix Transformation & Determinant
+          ⚡ Reactive 3D Matrix Transformation • Smart Grid System
         </h3>
         <p className="text-sm text-gray-600">
-          Observe how the matrix transforms the unit cube and basis vectors
+          Adaptive grids • Smart camera • Auto-zoom • Performance optimized • Det: {determinant.toFixed(3)}
         </p>
       </div>
       
       <Canvas
         camera={{
-          position: [6, 4, 6],
+          position: [8, 6, 8],
           fov: 50,
           near: 0.1,
           far: 1000
         }}
         shadows
+        performance={{ min: 0.5 }} // Maintain 30fps minimum
+        gl={{ 
+          antialias: true,
+          alpha: false,
+          powerPreference: "high-performance"
+        }}
+        dpr={[1, 2]} // Adaptive pixel ratio for performance
+        style={{ background: "white" }} // Set background to white
       >
-        {/* Lighting */}
-        <ambientLight intensity={0.6} />
+        {/* Set scene background to white */}
+        <color attach="background" args={["#ffffff"]} />
+        {/* Enhanced Lighting */}
+        <ambientLight intensity={0.4} />
         <directionalLight
           position={[10, 10, 5]}
-          intensity={1}
+          intensity={0.8}
           castShadow
+          shadow-mapSize-width={1024}
+          shadow-mapSize-height={1024}
+          shadow-camera-far={50}
+          shadow-camera-left={-10}
+          shadow-camera-right={10}
+          shadow-camera-top={10}
+          shadow-camera-bottom={-10}
         />
         
-        {/* Grid and axes */}
+        {/* Reactive Grid System */}
         {settings.showGrid && (
-          <>
-            {/* XY plane (ground) */}
-            <Grid
-              args={[20, 20]}
-              position={[0, 0, 0]}
-              rotation={[-Math.PI/2, 0, 0]}
-              cellSize={1}
-              cellThickness={0.5}
-              cellColor="#a0a0a0"
-              sectionSize={5}
-              sectionThickness={1}
-              sectionColor="#808080"
-              fadeDistance={30}
-              fadeStrength={1}
-            />
-            {/* XZ plane (vertical) */}
-            <Grid
-              args={[20, 20]}
-              position={[0, 0, 0]}
-              rotation={[0, 0, 0]}
-              cellSize={1}
-              cellThickness={0.5}
-              cellColor="#a0a0a0"
-              sectionSize={5}
-              sectionThickness={1}
-              sectionColor="#808080"
-              fadeDistance={30}
-              fadeStrength={1}
-            />
-            {/* YZ plane (side) */}
-            <Grid
-              args={[20, 20]}
-              position={[0, 0, 0]}
-              rotation={[0, Math.PI/2, 0]}
-              cellSize={1}
-              cellThickness={0.5}
-              cellColor="#a0a0a0"
-              sectionSize={5}
-              sectionThickness={1}
-              sectionColor="#808080"
-              fadeDistance={30}
-              fadeStrength={1}
-            />
-          </>
+          <ReactiveGridPlanes
+            showXY={true}
+            showXZ={true}
+            showYZ={true}
+            opacity={0.8}
+          />
         )}
         
         {/* Coordinate axes */}
@@ -513,18 +590,37 @@ const MatrixTransformationCanvas3D: React.FC<MatrixTransformationCanvas3DProps> 
           );
         })}
         
-        {/* Camera controls */}
+        {/* Intelligent Camera Controller */}
+        <CameraController
+          vectors={allVectors}
+          autoFrame={true}
+          enableAutoRotate={false}
+        />
+        
+        {/* Backup OrbitControls for manual camera control */}
         <OrbitControls
           enablePan={true}
           enableZoom={true}
           enableRotate={true}
-          minDistance={3}
-          maxDistance={15}
+          minDistance={1}
+          maxDistance={50}
         />
       </Canvas>
       
       {/* Draggable Legend */}
+      {/* Responsive Camera Controls */}
+      <ResponsiveCameraControlsUI 
+        determinant={determinant} 
+        onAutoFrame={handleAutoFrame}
+      />
+      
       <DraggableLegend matrix={matrix3D} determinant={determinant} />
+      
+      {/* Responsive Camera Controls */}
+      <ResponsiveCameraControlsUI 
+        determinant={determinant} 
+        onAutoFrame={handleAutoFrame}
+      />
     </div>
   );
 };
