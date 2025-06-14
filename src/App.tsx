@@ -59,7 +59,7 @@ const CanvasControls: React.FC<{
     <div className="absolute top-4 right-4 flex space-x-2 z-10">
       <Tooltip 
         content="Zoom In" 
-        description="Zoom into the visualization for a closer view"
+        description="Zoom into the visualization for extremely detailed views (up to 1000x magnification)"
         position="bottom"
       >
         <button
@@ -77,7 +77,7 @@ const CanvasControls: React.FC<{
 
       <Tooltip 
         content="Zoom Out" 
-        description="Zoom out from the visualization for a wider view"
+        description="Zoom out from the visualization for extremely wide views (down to 0.001x scale)"
         position="bottom"
       >
         <button
@@ -175,7 +175,7 @@ const AppContent: React.FC = () => {
       if (e.touches.length === 2 && pinchState.current.initialDist) {
         const newDist = getTouchDist(e);
         const scaleFactor = newDist / pinchState.current.initialDist;
-        setScale(Math.max(0.1, Math.min(10, pinchState.current.initialScale * scaleFactor)));
+        setScale(Math.max(0.001, Math.min(1000, pinchState.current.initialScale * scaleFactor)));
         e.preventDefault();
       } else if (e.touches.length === 1 && panState.current.isPanning) {
         // Pan
@@ -238,7 +238,7 @@ const AppContent: React.FC = () => {
         e.preventDefault();
         setScale(s => {
           let next = s * (e.deltaY < 0 ? 1.1 : 0.9);
-          next = Math.max(0.1, Math.min(10, next));
+          next = Math.max(0.001, Math.min(1000, next)); // Increased zoom range
           return next;
         });
       }
@@ -307,8 +307,8 @@ const AppContent: React.FC = () => {
 
   // Zoom/pan controls only affect 2D tools that support zoom
   const showCanvasControls = mode === '2d' && (tool === 'vector' || tool === 'basis' || tool === 'matrix' || tool === 'subspace' || tool === 'eigenvalue');
-  const handleZoomIn = () => setScale(s => Math.min(10, s * 1.1));
-  const handleZoomOut = () => setScale(s => Math.max(0.1, s * 0.9));
+  const handleZoomIn = () => setScale(s => Math.min(1000, s * 1.1)); // Increased max zoom
+  const handleZoomOut = () => setScale(s => Math.max(0.001, s * 0.9)); // Decreased min zoom
   const handleReset = () => { setScale(1); setOffset({ x: 0, y: 0 }); };
 
   return (

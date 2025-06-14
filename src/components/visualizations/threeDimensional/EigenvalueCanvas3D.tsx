@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Grid } from '@react-three/drei';
+import { OrbitControls } from '@react-three/drei';
 import { Vector3, Quaternion } from 'three';
 import { useVisualizer } from '../../../context/VisualizerContext';
 import { Vector3D, Vector2D } from '../../../types';
 import { calculateEigenvalues3D, applyMatrix3D } from '../../../utils/mathUtils';
+import { ReactiveGridPlanes } from './ReactiveGrid';
 
 // Helper function to ensure 3D vector
 const ensureVector3D = (vector: Vector3D | Vector2D): Vector3D => {
@@ -315,49 +316,14 @@ const EigenvalueCanvas3D: React.FC<EigenvalueCanvas3DProps> = ({ width, height }
           castShadow
         />
         
-        {/* Grid and axes */}
+        {/* Reactive Grid and axes */}
         {settings.showGrid && (
-          <>
-            <Grid
-              args={[20, 20]}
-              position={[0, 0, 0]}
-              rotation={[0, 0, 0]}
-              cellSize={1}
-              cellThickness={0.5}
-              cellColor="#a0a0a0"
-              sectionSize={5}
-              sectionThickness={1}
-              sectionColor="#808080"
-              fadeDistance={30}
-              fadeStrength={1}
-            />
-            <Grid
-              args={[20, 20]}
-              position={[0, 0, 0]}
-              rotation={[-Math.PI/2, 0, 0]}
-              cellSize={1}
-              cellThickness={0.5}
-              cellColor="#a0a0a0"
-              sectionSize={5}
-              sectionThickness={1}
-              sectionColor="#808080"
-              fadeDistance={30}
-              fadeStrength={1}
-            />
-            <Grid
-              args={[20, 20]}
-              position={[0, 0, 0]}
-              rotation={[0, Math.PI/2, 0]}
-              cellSize={1}
-              cellThickness={0.5}
-              cellColor="#a0a0a0"
-              sectionSize={5}
-              sectionThickness={1}
-              sectionColor="#808080"
-              fadeDistance={30}
-              fadeStrength={1}
-            />
-          </>
+          <ReactiveGridPlanes 
+            showXY={true}
+            showXZ={true}
+            showYZ={true}
+            opacity={0.7}
+          />
         )}
         
         {/* Eigenvectors */}
@@ -407,8 +373,8 @@ const EigenvalueCanvas3D: React.FC<EigenvalueCanvas3DProps> = ({ width, height }
           enablePan={true}
           enableZoom={true}
           enableRotate={true}
-          minDistance={5}
-          maxDistance={20}
+          minDistance={0.01}
+          maxDistance={Infinity}
         />
       </Canvas>
       

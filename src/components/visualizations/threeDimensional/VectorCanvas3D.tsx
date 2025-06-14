@@ -1,9 +1,10 @@
 import React, { useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Grid, Text } from '@react-three/drei';
+import { OrbitControls, Text } from '@react-three/drei';
 import { Vector3, Matrix4, Quaternion } from 'three';
 import { useVisualizer } from '../../../context/VisualizerContext';
 import { Vector3D } from '../../../types';
+import { ReactiveGridPlanes } from './ReactiveGrid';
 
 // Vector Arrow component
 const VectorArrow: React.FC<{
@@ -112,58 +113,6 @@ const Axes: React.FC<{ size: number }> = ({ size }) => {
   );
 };
 
-// Grid planes for better orientation
-const GridPlanes: React.FC = () => {
-  return (
-    <group>
-      {/* XY plane (ground) */}
-      <Grid
-        args={[20, 20]}
-        position={[0, 0, 0]}
-        rotation={[0, 0, 0]}
-        cellSize={1}
-        cellThickness={0.5}
-        cellColor="#a0a0a0"
-        sectionSize={5}
-        sectionThickness={1}
-        sectionColor="#808080"
-        fadeDistance={30}
-        fadeStrength={1}
-      />
-      
-      {/* XZ plane */}
-      <Grid
-        args={[20, 20]}
-        position={[0, 0, 0]}
-        rotation={[-Math.PI/2, 0, 0]}
-        cellSize={1}
-        cellThickness={0.5}
-        cellColor="#a0a0a0"
-        sectionSize={5}
-        sectionThickness={1}
-        sectionColor="#808080"
-        fadeDistance={30}
-        fadeStrength={1}
-      />
-      
-      {/* YZ plane */}
-      <Grid
-        args={[20, 20]}
-        position={[0, 0, 0]}
-        rotation={[0, Math.PI/2, 0]}
-        cellSize={1}
-        cellThickness={0.5}
-        cellColor="#a0a0a0"
-        sectionSize={5}
-        sectionThickness={1}
-        sectionColor="#808080"
-        fadeDistance={30}
-        fadeStrength={1}
-      />
-    </group>
-  );
-};
-
 // Scene component
 const Scene: React.FC = () => {
   const { 
@@ -179,8 +128,8 @@ const Scene: React.FC = () => {
   
   return (
     <group>
-      {/* Grid planes */}
-      {settings.showGrid && <GridPlanes />}
+      {/* Reactive Grid planes */}
+      {settings.showGrid && <ReactiveGridPlanes />}
       
       {/* Coordinate axes */}
       {settings.showAxes && !basisSettings3D.customBasis && <Axes size={5} />}
@@ -235,8 +184,8 @@ const CameraController: React.FC = () => {
       enablePan={true}
       enableZoom={true}
       enableRotate={true}
-      minDistance={5}
-      maxDistance={20}
+      minDistance={0.01}
+      maxDistance={Infinity}
       onChange={() => setIsRotating(false)}
     />
   );

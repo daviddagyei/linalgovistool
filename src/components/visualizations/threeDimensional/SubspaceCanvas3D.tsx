@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Grid, Text } from '@react-three/drei';
+import { OrbitControls, Text } from '@react-three/drei';
 import { Vector3, BufferGeometry, Float32BufferAttribute, Quaternion, Mesh } from 'three';
 import * as THREE from 'three';
 import { useVisualizer } from '../../../context/VisualizerContext';
 import { isLinearlyIndependent3D, magnitude3D, crossProduct, normalize3D } from '../../../utils/mathUtils';
+import { ReactiveGridPlanes } from './ReactiveGrid';
 
 interface SubspaceCanvas3DProps {
   width: number;
@@ -618,49 +619,14 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
         />
         <pointLight position={[-10, -10, -10]} intensity={0.3} />
         
-        {/* Enhanced Grid System */}
+        {/* Enhanced Reactive Grid System */}
         {settings.showGrid && (
-          <>
-            <Grid
-              args={[20, 20]}
-              position={[0, 0, 0]}
-              rotation={[0, 0, 0]}
-              cellSize={1}
-              cellThickness={0.5}
-              cellColor="#e0e0e0"
-              sectionSize={5}
-              sectionThickness={1}
-              sectionColor="#c0c0c0"
-              fadeDistance={30}
-              fadeStrength={1}
-            />
-            <Grid
-              args={[20, 20]}
-              position={[0, 0, 0]}
-              rotation={[-Math.PI/2, 0, 0]}
-              cellSize={1}
-              cellThickness={0.5}
-              cellColor="#e0e0e0"
-              sectionSize={5}
-              sectionThickness={1}
-              sectionColor="#c0c0c0"
-              fadeDistance={30}
-              fadeStrength={1}
-            />
-            <Grid
-              args={[20, 20]}
-              position={[0, 0, 0]}
-              rotation={[0, Math.PI/2, 0]}
-              cellSize={1}
-              cellThickness={0.5}
-              cellColor="#e0e0e0"
-              sectionSize={5}
-              sectionThickness={1}
-              sectionColor="#c0c0c0"
-              fadeDistance={30}
-              fadeStrength={1}
-            />
-          </>
+          <ReactiveGridPlanes 
+            showXY={true}
+            showXZ={true}
+            showYZ={true}
+            opacity={0.8}
+          />
         )}
         
         {/* Enhanced Coordinate Axes */}
@@ -732,8 +698,8 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
           enablePan={true}
           enableZoom={true}
           enableRotate={true}
-          minDistance={3}
-          maxDistance={25}
+          minDistance={0.01}
+          maxDistance={Infinity}
           autoRotate={false}
           autoRotateSpeed={0.5}
         />
