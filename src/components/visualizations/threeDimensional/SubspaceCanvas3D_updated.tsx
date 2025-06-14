@@ -6,7 +6,7 @@ import { Vector3, BufferGeometry } from 'three';
 import * as THREE from 'three';
 import { useVisualizer } from '../../../context/VisualizerContext';
 import { isLinearlyIndependent3D, magnitude3D, crossProduct, normalize3D } from '../../../utils/mathUtils';
-import { ReactiveGridPlanes } from './ReactiveGrid';
+import { ReactiveGridPlanes } from './ContentAwareGrid';
 import { CameraController, useCameraControls } from './CameraController';
 import { AdaptiveVectorArrow } from './AdaptiveVectorArrow';
 // import { PerformanceMonitor } from './PerformanceMonitor'; // Uncomment for performance debugging
@@ -503,6 +503,7 @@ const DraggableLegend: React.FC<{
         <div><span className="font-medium">🚀 Adaptive Rendering:</span> LOD + Smart scaling</div>
         <div><span className="font-medium">📏 Magnitude Aware:</span> Color intensity mapping</div>
         <div><span className="font-medium">🎯 Smart Labels:</span> Anti-overlap positioning</div>
+        <div><span className="font-medium">📐 Reactive Grid:</span> Content-aware spacing</div>
         <div><span className="font-medium">⚡ Performance:</span> 60fps with dynamic geometry</div>
       </div>
     </div>,
@@ -554,10 +555,10 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
       {/* Enhanced Header with Adaptive Rendering Info */}
       <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-green-50 to-blue-50 p-4 border-b border-gray-200/50 z-10">
         <h3 className="text-lg font-bold text-gray-800 mb-1">
-          ⚡ Adaptive 3D Vector Visualization with Level-of-Detail
+          ⚡ Adaptive 3D Vector Visualization • Content-Aware Grid System
         </h3>
         <p className="text-sm text-gray-600">
-          Smart scaling • Dynamic LOD • Magnitude-aware rendering • Anti-overlap labels • 60fps performance
+          Smart scaling • Dynamic LOD • Content-aware grids • Multi-level spacing • Auto-magnitude reference
         </p>
       </div>
 
@@ -598,13 +599,16 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
         />
         <pointLight position={[-10, -10, -10]} intensity={0.3} />
         
-        {/* Enhanced Reactive Grid System */}
+        {/* Enhanced Content-Aware Reactive Grid System */}
         {settings.showGrid && (
           <ReactiveGridPlanes 
+            vectors={vectors3D}
             showXY={true}
             showXZ={true}
             showYZ={true}
             opacity={0.8}
+            adaptiveMode="hybrid"
+            showMultiLevel={true}
           />
         )}
         
