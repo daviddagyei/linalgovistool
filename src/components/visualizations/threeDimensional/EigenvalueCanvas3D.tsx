@@ -249,65 +249,6 @@ const DraggableLegend: React.FC<{
   );
 };
 
-// Camera Controls UI Component for Eigenvalue Canvas
-const EigenvalueCameraControlsUI: React.FC<{
-  eigenvalues: Array<{ value: number; vector: Vector3D | Vector2D }>;
-}> = ({ eigenvalues }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  return (
-    <div className="absolute top-4 right-4 z-20">
-      <div className="bg-white/95 backdrop-blur-sm rounded-lg border border-gray-200/50 shadow-lg">
-        <div className="flex items-center justify-between p-3 border-b border-gray-200/50">
-          <h4 className="text-sm font-semibold text-gray-700">Camera Controls</h4>
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="text-gray-500 hover:text-gray-700 transition-colors"
-          >
-            {isExpanded ? '▼' : '▶'}
-          </button>
-        </div>
-
-        <div className="p-3 space-y-2">
-          <div className="text-sm text-gray-600">
-            Adaptive grid system with auto-framing
-          </div>
-        </div>
-
-        {isExpanded && (
-          <div className="p-3 border-t border-gray-200/50">
-            <h5 className="text-xs font-semibold text-gray-600 mb-2">Eigenvalues:</h5>
-            <div className="space-y-1 max-h-32 overflow-y-auto">
-              {eigenvalues.map((eig, index) => {
-                const vector3D = ensureVector3D(eig.vector);
-                return (
-                  <div
-                    key={index}
-                    className="w-full px-2 py-1 rounded text-xs bg-green-100 text-green-800"
-                  >
-                    <span className="font-mono">
-                      λ{index + 1} = {eig.value.toFixed(3)}
-                    </span>
-                    <br />
-                    <span className="text-xs text-gray-600">
-                      v: ({vector3D.x.toFixed(1)}, {vector3D.y.toFixed(1)}, {vector3D.z.toFixed(1)})
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        <div className="px-3 py-2 border-t border-gray-200/50 bg-gray-50/50">
-          <p className="text-xs text-gray-500">
-            Camera with adaptive controls
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 // Main Canvas component
 const EigenvalueCanvas3D: React.FC<EigenvalueCanvas3DProps> = ({ width, height }) => {
@@ -365,11 +306,6 @@ const EigenvalueCanvas3D: React.FC<EigenvalueCanvas3DProps> = ({ width, height }
           </div>
         </div>
       </div>
-
-      {/* Camera Controls UI */}
-      <EigenvalueCameraControlsUI
-        eigenvalues={eigenvalues}
-      />
       
       <Canvas
         camera={{

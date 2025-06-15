@@ -607,19 +607,7 @@ const MatrixTransformationCanvas3D: React.FC<MatrixTransformationCanvas3DProps> 
       </Canvas>
       
       {/* Draggable Legend */}
-      {/* Responsive Camera Controls */}
-      <ResponsiveCameraControlsUI 
-        determinant={determinant} 
-        onAutoFrame={handleAutoFrame}
-      />
-      
       <DraggableLegend matrix={matrix3D} determinant={determinant} />
-      
-      {/* Responsive Camera Controls */}
-      <ResponsiveCameraControlsUI 
-        determinant={determinant} 
-        onAutoFrame={handleAutoFrame}
-      />
     </div>
   );
 };

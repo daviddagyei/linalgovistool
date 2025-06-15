@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
 import { Vector3, Quaternion } from 'three';
@@ -128,61 +128,7 @@ const StandardAxes: React.FC<{ size: number }> = ({ size }) => {
   );
 };
 
-// Basis Camera Controls UI Component
-const BasisCameraControlsUI: React.FC<{
-  basisVectors: Vector3D[];
-  customBasis: boolean;
-}> = ({ basisVectors, customBasis }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
 
-  return (
-    <div className="absolute top-4 right-4 z-20">
-      <div className="bg-white/95 backdrop-blur-sm rounded-lg border border-gray-200/50 shadow-lg">
-        <div className="flex items-center justify-between p-3 border-b border-gray-200/50">
-          <h4 className="text-sm font-semibold text-gray-700">
-            Camera Controls
-          </h4>
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="text-gray-500 hover:text-gray-700 transition-colors"
-          >
-            {isExpanded ? '▼' : '▶'}
-          </button>
-        </div>
-
-        <div className="p-3 space-y-2">
-          <div className="text-sm text-gray-600">
-            {customBasis ? 'Custom Basis Active' : 'Standard Basis'}
-          </div>
-        </div>
-
-        {isExpanded && (
-          <div className="p-3 border-t border-gray-200/50">
-            <h5 className="text-xs font-semibold text-gray-600 mb-2">Current Basis:</h5>
-            <div className="space-y-1 max-h-32 overflow-y-auto">
-              {basisVectors.map((vector, index) => (
-                <div
-                  key={index}
-                  className="w-full px-2 py-1 text-left rounded text-xs bg-gray-100 text-gray-600"
-                >
-                  <span className="font-mono">
-                    e{index + 1}: ({vector.x.toFixed(2)}, {vector.y.toFixed(2)}, {vector.z.toFixed(2)})
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="px-3 py-2 border-t border-gray-200/50 bg-gray-50/50">
-          <p className="text-xs text-gray-500">
-            Use mouse or touch to control camera view
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 // Main 3D Basis Canvas component
 const BasisCanvas3D: React.FC<{ width: number; height: number }> = ({ width, height }) => {
@@ -229,12 +175,6 @@ const BasisCanvas3D: React.FC<{ width: number; height: number }> = ({ width, hei
             'Explore standard orthonormal basis vectors (i, j, k)'}
         </p>
       </div>
-
-      {/* Basis Camera Controls UI */}
-      <BasisCameraControlsUI 
-        basisVectors={currentBasisVectors}
-        customBasis={basisSettings3D.customBasis}
-      />
 
       <Canvas
         camera={{
