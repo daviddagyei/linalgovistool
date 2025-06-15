@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
+import ReactDOM from 'react-dom';
 import * as d3 from 'd3';
 import { useVisualizer } from '../../../context/VisualizerContext';
 import { Vector2D } from '../../../types';
@@ -12,6 +13,207 @@ const getEigenvalueColor = (index: number): string => {
 
 const getTestVectorColor = (index: number): string => {
   return `hsl(${300 + index * 30}, 70%, 45%)`;
+};
+
+// Draggable Legend Component for 2D Eigenvalue Analysis
+const DraggableLegend: React.FC<{
+  eigenvalues: Array<{ value: number; vector: Vector2D }>;
+  testVectors: Vector2D[];
+  transformedVectors: Vector2D[];
+  showEigenvectors: boolean;
+  showTransformation: boolean;
+}> = ({ eigenvalues, testVectors, transformedVectors, showEigenvectors, showTransformation }) => {
+  const [position, setPosition] = useState({ 
+    x: window.innerWidth - 280, // Position from right edge (legend width + margin)
+    y: 16 // Keep at top
+  });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+  // Handle responsive positioning on window resize
+  React.useEffect(() => {
+    const updatePosition = () => {
+      if (!isDragging) { // Only update if not being dragged
+        setPosition(prev => ({
+          x: Math.max(16, window.innerWidth - 280), // Ensure minimum margin from left
+          y: prev.y // Keep current y position
+        }));
+      }
+    };
+
+    window.addEventListener('resize', updatePosition);
+    updatePosition(); // Call once on mount
+
+    return () => window.removeEventListener('resize', updatePosition);
+  }, [isDragging]);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setDragOffset({
+      x: e.clientX - position.x,
+      y: e.clientY - position.y,
+    });
+    e.preventDefault();
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    setIsDragging(true);
+    setDragOffset({
+      x: touch.clientX - position.x,
+      y: touch.clientY - position.y,
+    });
+    e.preventDefault();
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (isDragging) {
+      setPosition({
+        x: e.clientX - dragOffset.x,
+        y: e.clientY - dragOffset.y,
+      });
+    }
+  };
+
+  const handleTouchMove = (e: TouchEvent) => {
+    if (isDragging && e.touches.length > 0) {
+      const touch = e.touches[0];
+      setPosition({
+        x: touch.clientX - dragOffset.x,
+        y: touch.clientY - dragOffset.y,
+      });
+      e.preventDefault();
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+  };
+
+  React.useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener('touchmove', handleTouchMove, { passive: false });
+      document.addEventListener('touchend', handleTouchEnd);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+        document.removeEventListener('touchmove', handleTouchMove);
+        document.removeEventListener('touchend', handleTouchEnd);
+      };
+    }
+  }, [isDragging, dragOffset]);
+
+  // Create small arrow icon for legend
+  const createArrowIcon = (color: string, dashed: boolean = false) => (
+    <div className="flex items-center mr-2">
+      <div
+        className="w-6 h-0.5 rounded"
+        style={{
+          backgroundColor: dashed ? 'transparent' : color,
+          opacity: dashed ? 0.6 : 1,
+          borderTop: dashed ? `1px dashed ${color}` : 'none',
+        }}
+      />
+      <div
+        className="w-0 h-0 ml-1"
+        style={{
+          borderLeft: `3px solid ${color}`,
+          borderTop: '2px solid transparent',
+          borderBottom: '2px solid transparent',
+          opacity: dashed ? 0.6 : 1,
+        }}
+      />
+    </div>
+  );
+
+  const testVectorNames = ['e₁ (unit x)', 'e₂ (unit y)', 'v₁ (diagonal)', 'v₂ (anti-diag)'];
+  const transformedVectorNames = ['Ae₁', 'Ae₂', 'Av₁', 'Av₂'];
+
+  return ReactDOM.createPortal(
+    <div
+      className="fixed bg-white bg-opacity-95 rounded-lg border border-gray-300 p-3 shadow-lg cursor-move select-none z-50 touch-none"
+      style={{
+        left: position.x,
+        top: position.y,
+        userSelect: 'none',
+        minWidth: '250px',
+        maxWidth: '90vw',
+        maxHeight: '80vh',
+        overflowY: 'auto',
+      }}
+      onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <h4 className="text-sm font-bold text-gray-800">2D Vector Legend</h4>
+        <div className="text-xs text-gray-400">⋮⋮</div>
+      </div>
+      <div className="space-y-2 text-xs">
+        {/* Eigenvectors */}
+        {showEigenvectors && eigenvalues.length > 0 && (
+          <>
+            <div className="font-medium text-gray-700 border-b pb-1">Eigenvectors:</div>
+            {eigenvalues.map((eigenvalue, index) => (
+              <div key={`eigen-${index}`}>
+                <div className="flex items-center">
+                  {createArrowIcon(getEigenvalueColor(index))}
+                  <span className="font-medium">λ{index + 1} = {eigenvalue.value.toFixed(3)}</span>
+                </div>
+                <div className="ml-8 text-gray-600">
+                  v = ({eigenvalue.vector.x.toFixed(2)}, {eigenvalue.vector.y.toFixed(2)})
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+        
+        {/* Test vectors */}
+        {showTransformation && (
+          <div className="pt-2 border-t border-gray-200">
+            <div className="font-medium text-gray-700 mb-2">Test Vectors:</div>
+            
+            {/* Original vectors */}
+            <div className="mb-3">
+              <div className="text-xs font-medium text-gray-600 mb-1">Original:</div>
+              {testVectors.map((vector, index) => (
+                <div key={`test-${index}`} className="flex items-center mb-1">
+                  {createArrowIcon(getTestVectorColor(index), true)}
+                  <span className="text-gray-600">
+                    {testVectorNames[index]} = ({vector.x.toFixed(1)}, {vector.y.toFixed(1)})
+                  </span>
+                </div>
+              ))}
+            </div>
+            
+            {/* Transformed vectors */}
+            <div>
+              <div className="text-xs font-medium text-gray-600 mb-1">Transformed:</div>
+              {transformedVectors.map((vector, index) => (
+                <div key={`transformed-${index}`} className="flex items-center mb-1">
+                  {createArrowIcon(getTestVectorColor(index))}
+                  <span className="text-gray-600">
+                    {transformedVectorNames[index]} = ({vector.x.toFixed(1)}, {vector.y.toFixed(1)})
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="mt-2 pt-2 border-t border-gray-200 text-xs text-gray-500">
+        <span className="font-medium">Controls:</span> 
+        <span className="hidden sm:inline"> Click & drag canvas to pan, scroll to zoom</span>
+        <span className="sm:hidden"> Pinch to zoom, drag to pan</span>
+      </div>
+    </div>,
+    document.body
+  );
 };
 
 interface EigenvalueCanvas2DProps {
@@ -37,18 +239,6 @@ const EigenvalueCanvas2D: React.FC<EigenvalueCanvas2DProps> = ({
   const margin = { top: 20, right: 20, bottom: 30, left: 40 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
-  
-  // State for draggable legend
-  const [legendPosition, setLegendPosition] = useState({ x: innerWidth - 150, y: 5 });
-  
-  // Calculate responsive legend dimensions - reduced for more compact legend
-  const legendWidth = width < 640 ? Math.min(160, width - 30) : 180;
-  const legendHeight = width < 640 ? 180 : 250;
-  
-  useEffect(() => {
-    // Reset legend position when dimensions change - positioned more to the top right
-    setLegendPosition({ x: Math.max(5, innerWidth - legendWidth - 5), y: 5 });
-  }, [innerWidth, legendWidth]);
 
   useEffect(() => {
     if (!svgRef.current) return;
@@ -304,185 +494,7 @@ const EigenvalueCanvas2D: React.FC<EigenvalueCanvas2DProps> = ({
       });
     }
     
-    // Draw comprehensive legend with all vector information
-    const legend = svg.append('g')
-      .attr('class', 'legend')
-      .attr('transform', `translate(${legendPosition.x}, ${legendPosition.y})`);
-    
-    // Legend background
-    legend.append('rect')
-      .attr('width', legendWidth)
-      .attr('height', legendHeight)
-      .attr('fill', 'white')
-      .attr('stroke', '#ccc')
-      .attr('stroke-width', 1)
-      .attr('rx', 8)
-      .attr('opacity', 0.95)
-      .attr('filter', 'drop-shadow(0 4px 12px rgba(0,0,0,0.1))');
-    
-    // Legend title
-    legend.append('text')
-      .attr('x', 15)
-      .attr('y', 25)
-      .attr('fill', '#1f2937')
-      .attr('font-size', '16px')
-      .attr('font-weight', 'bold')
-      .attr('font-family', 'system-ui, -apple-system, sans-serif')
-      .text('Eigenvalue Analysis');
-    
-    // Legend content
-    let yOffset = 50;
-    
-    // Eigenvectors section
-    if (eigenvalueSettings?.showEigenvectors && eigenvalues.length > 0) {
-      legend.append('text')
-        .attr('x', 15)
-        .attr('y', yOffset)
-        .attr('fill', '#374151')
-        .attr('font-size', '13px')
-        .attr('font-weight', '600')
-        .attr('font-family', 'system-ui, -apple-system, sans-serif')
-        .text('Eigenvectors:');
-      
-      yOffset += 20;
-      
-      eigenvalues.forEach((eigenvalue, index) => {
-        const eigenvector = eigenvalue.vector as Vector2D;
-        
-        // Color indicator
-        legend.append('circle')
-          .attr('cx', 20)
-          .attr('cy', yOffset - 3)
-          .attr('r', 4)
-          .attr('fill', getEigenvalueColor(index));
-        
-        // Eigenvalue and eigenvector info
-        legend.append('text')
-          .attr('x', 30)
-          .attr('y', yOffset)
-          .attr('fill', '#1f2937')
-          .attr('font-size', '11px')
-          .attr('font-weight', '600')
-          .attr('font-family', 'system-ui, -apple-system, sans-serif')
-          .text(`λ${index + 1} = ${eigenvalue.value.toFixed(3)}`);
-        
-        legend.append('text')
-          .attr('x', 30)
-          .attr('y', yOffset + 12)
-          .attr('fill', '#6b7280')
-          .attr('font-size', '10px')
-          .attr('font-family', 'system-ui, -apple-system, sans-serif')
-          .text(`v = (${eigenvector.x.toFixed(2)}, ${eigenvector.y.toFixed(2)})`);
-        
-        yOffset += 30;
-      });
-      
-      yOffset += 10;
-    }
-    
-    // Test vectors section
-    if (eigenvalueSettings?.showTransformation) {
-      const testVectorNames = ['e₁', 'e₂', 'v₁', 'v₂'];
-      const transformedVectorNames = ['Ae₁', 'Ae₂', 'Av₁', 'Av₂'];
-      
-      legend.append('text')
-        .attr('x', 15)
-        .attr('y', yOffset)
-        .attr('fill', '#374151')
-        .attr('font-size', '13px')
-        .attr('font-weight', '600')
-        .attr('font-family', 'system-ui, -apple-system, sans-serif')
-        .text('Test vectors:');
-      
-      yOffset += 20;
-      
-      // Original vectors
-      legend.append('line')
-        .attr('x1', 15)
-        .attr('y1', yOffset - 3)
-        .attr('x2', 35)
-        .attr('y2', yOffset - 3)
-        .attr('stroke', getTestVectorColor(0))
-        .attr('stroke-width', 2)
-        .attr('stroke-dasharray', '3,2')
-        .attr('opacity', 0.7);
-      
-      legend.append('text')
-        .attr('x', 40)
-        .attr('y', yOffset)
-        .attr('fill', '#1f2937')
-        .attr('font-size', '11px')
-        .attr('font-weight', '600')
-        .attr('font-family', 'system-ui, -apple-system, sans-serif')
-        .text('Original vectors');
-      
-      yOffset += 18;
-      
-      testVectors.forEach((vector, index) => {
-        // Color indicator
-        legend.append('circle')
-          .attr('cx', 25)
-          .attr('cy', yOffset - 3)
-          .attr('r', 3)
-          .attr('fill', getTestVectorColor(index))
-          .attr('opacity', 0.7);
-        
-        // Vector name and coordinates
-        legend.append('text')
-          .attr('x', 35)
-          .attr('y', yOffset)
-          .attr('fill', '#6b7280')
-          .attr('font-size', '10px')
-          .attr('font-family', 'system-ui, -apple-system, sans-serif')
-          .text(`${testVectorNames[index]} = (${vector.x.toFixed(1)}, ${vector.y.toFixed(1)})`);
-        
-        yOffset += 15;
-      });
-      
-      yOffset += 10;
-      
-      // Transformed vectors
-      legend.append('line')
-        .attr('x1', 15)
-        .attr('y1', yOffset - 3)
-        .attr('x2', 35)
-        .attr('y2', yOffset - 3)
-        .attr('stroke', getTestVectorColor(0))
-        .attr('stroke-width', 3);
-      
-      legend.append('text')
-        .attr('x', 40)
-        .attr('y', yOffset)
-        .attr('fill', '#1f2937')
-        .attr('font-size', '11px')
-        .attr('font-weight', '600')
-        .attr('font-family', 'system-ui, -apple-system, sans-serif')
-        .text('Transformed vectors');
-      
-      yOffset += 18;
-      
-      transformedVectors.forEach((vector, index) => {
-        // Color indicator
-        legend.append('circle')
-          .attr('cx', 25)
-          .attr('cy', yOffset - 3)
-          .attr('r', 3)
-          .attr('fill', getTestVectorColor(index));
-        
-        // Vector name and coordinates
-        legend.append('text')
-          .attr('x', 35)
-          .attr('y', yOffset)
-          .attr('fill', '#6b7280')
-          .attr('font-size', '10px')
-          .attr('font-family', 'system-ui, -apple-system, sans-serif')
-          .text(`${transformedVectorNames[index]} = (${vector.x.toFixed(1)}, ${vector.y.toFixed(1)})`);
-        
-        yOffset += 15;
-      });
-    }
-    
-  }, [matrix2D, width, height, margin, settings, eigenvalueSettings, legendPosition, scale, offset]);
+  }, [matrix2D, width, height, margin, settings, eigenvalueSettings, scale, offset]);
   
   // Pan and zoom handlers
   const [dragging, setDragging] = useState(false);
@@ -546,6 +558,23 @@ const EigenvalueCanvas2D: React.FC<EigenvalueCanvas2DProps> = ({
       >
         <svg ref={svgRef} className="w-full h-full"></svg>
       </div>
+      <DraggableLegend 
+        eigenvalues={calculateEigenvalues2D(matrix2D)} 
+        testVectors={[
+          { x: 1, y: 0 },
+          { x: 0, y: 1 },
+          { x: 1, y: 1 },
+          { x: -1, y: 1 }
+        ]}
+        transformedVectors={[
+          { x: 1, y: 0 },
+          { x: 0, y: 1 },
+          { x: 1, y: 1 },
+          { x: -1, y: 1 }
+        ].map(v => applyMatrix2D(matrix2D, v))}
+        showEigenvectors={eigenvalueSettings?.showEigenvectors}
+        showTransformation={eigenvalueSettings?.showTransformation}
+      />
     </div>
   );
 };

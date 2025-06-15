@@ -348,83 +348,6 @@ const DraggableLegend: React.FC<{
 };
 
 // Responsive Camera Controls UI Component
-const ResponsiveCameraControlsUI: React.FC<{
-  determinant: number;
-  onAutoFrame: () => void;
-}> = ({ determinant, onAutoFrame }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const viewport = useResponsiveViewport();
-
-  return (
-    <div className={`absolute top-4 right-4 z-20 ${
-      viewport.isMobile ? 'right-2 top-2' : 'right-4 top-4'
-    }`}>
-      <div className="bg-white/95 backdrop-blur-sm rounded-lg border border-gray-200/50 shadow-lg">
-        <div className="flex items-center justify-between p-3 border-b border-gray-200/50">
-          <h4 className={`font-semibold text-gray-700 ${
-            viewport.isMobile ? 'text-xs' : 'text-sm'
-          }`}>
-            Camera Controls
-          </h4>
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="text-gray-500 hover:text-gray-700 transition-colors"
-          >
-            {isExpanded ? '▼' : '▶'}
-          </button>
-        </div>
-
-        <div className="p-3 space-y-2">
-          <div className={`text-gray-600 ${
-            viewport.isMobile ? 'text-xs' : 'text-sm'
-          }`}>
-            Adaptive grid system with auto-framing
-          </div>
-          
-          <button
-            onClick={onAutoFrame}
-            className={`w-full px-2 py-1 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded transition-colors ${
-              viewport.isMobile ? 'text-xs' : 'text-sm'
-            }`}
-          >
-            Auto Frame View
-          </button>
-        </div>
-
-        {isExpanded && (
-          <div className="p-3 border-t border-gray-200/50">
-            <h5 className={`font-semibold text-gray-600 mb-2 ${
-              viewport.isMobile ? 'text-xs' : 'text-sm'
-            }`}>
-              Matrix Info:
-            </h5>
-            <div className="space-y-1">
-              <div className={`text-gray-600 ${
-                viewport.isMobile ? 'text-xs' : 'text-sm'
-              }`}>
-                Det: <span className="font-mono">{determinant.toFixed(3)}</span>
-              </div>
-              <div className={`text-gray-600 ${
-                viewport.isMobile ? 'text-xs' : 'text-sm'
-              }`}>
-                Type: {Math.abs(determinant) < 0.001 ? 'Singular' : 
-                      determinant < 0 ? 'Orientation-reversing' : 'Orientation-preserving'}
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="px-3 py-2 border-t border-gray-200/50 bg-gray-50/50">
-          <p className={`text-gray-500 ${
-            viewport.isMobile ? 'text-xs' : 'text-sm'
-          }`}>
-            Use mouse or touch to control camera view
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 // Main Canvas component
 const MatrixTransformationCanvas3D: React.FC<MatrixTransformationCanvas3DProps> = ({ width, height }) => {
@@ -456,9 +379,6 @@ const MatrixTransformationCanvas3D: React.FC<MatrixTransformationCanvas3DProps> 
   const transformedColor = '#FF6633';
   
   // Auto frame handler
-  const handleAutoFrame = () => {
-    // This will be handled by the CameraController
-  };
   
   return (
     <div 
