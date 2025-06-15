@@ -6,6 +6,7 @@ import { useVisualizer } from '../../../context/VisualizerContext';
 import { Vector3D } from '../../../types';
 import { ReactiveGridPlanes } from './ReactiveGrid';
 import { CameraController } from './CameraController';
+import ModernCanvasHeader from './ModernCanvasHeader';
 
 // Vector Arrow component for basis vectors
 const BasisVectorArrow: React.FC<{

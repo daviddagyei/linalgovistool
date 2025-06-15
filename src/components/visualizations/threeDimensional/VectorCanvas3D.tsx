@@ -6,6 +6,7 @@ import { useVisualizer } from '../../../context/VisualizerContext';
 import { Vector3D } from '../../../types';
 import { ReactiveGridPlanes } from './ReactiveGrid';
 import { CameraController } from './CameraController';
+import ModernCanvasHeader from './ModernCanvasHeader';
 
 // Vector Arrow component
 const VectorArrow: React.FC<{
@@ -128,15 +129,12 @@ const VectorCanvas3D: React.FC<{ width: number; height: number }> = ({ width, he
       className="vector-canvas-3d bg-white rounded-lg shadow-lg overflow-hidden relative"
       style={{ width, height }}
     >
-      {/* Header for Vector Tool */}
-      <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-4 border-b border-gray-200">
-        <h3 className="text-lg font-bold text-gray-800 mb-1">
-          3D Vector Visualization
-        </h3>
-        <p className="text-sm text-gray-600">
-          Perform and visualize vector operations in three dimensions
-        </p>
-      </div>
+      {/* Modern Header */}
+      <ModernCanvasHeader 
+        title="3D Vector Visualization"
+        description="Perform and visualize vector operations in three dimensions"
+        variant="vector"
+      />
 
       <Canvas
         camera={{

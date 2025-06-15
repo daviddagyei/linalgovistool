@@ -7,6 +7,7 @@ import { Vector3D, Vector2D } from '../../../types';
 import { calculateEigenvalues3D, applyMatrix3D } from '../../../utils/mathUtils';
 import { ReactiveGridPlanes } from './ReactiveGrid';
 import { CameraController } from './CameraController';
+import ModernCanvasHeader from './ModernCanvasHeader';
 
 // Helper function to ensure 3D vector
 const ensureVector3D = (vector: Vector3D | Vector2D): Vector3D => {
@@ -276,36 +277,12 @@ const EigenvalueCanvas3D: React.FC<EigenvalueCanvas3DProps> = ({ width, height }
       className="eigenvalue-canvas-3d bg-white rounded-lg shadow-lg overflow-hidden relative"
       style={{ width, height }}
     >
-      {/* Matrix Information */}
-      <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 border-b border-gray-200">
-        <h3 className="text-lg font-bold text-gray-800 mb-2">
-          3D Eigenvalue and Eigenvector Analysis
-        </h3>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <h4 className="text-sm font-semibold text-gray-700 mb-1">Matrix:</h4>
-            <div className="text-xs font-mono bg-white p-2 rounded border">
-              <div>[{matrix3D[0][0].toFixed(2)} {matrix3D[0][1].toFixed(2)} {matrix3D[0][2].toFixed(2)}]</div>
-              <div>[{matrix3D[1][0].toFixed(2)} {matrix3D[1][1].toFixed(2)} {matrix3D[1][2].toFixed(2)}]</div>
-              <div>[{matrix3D[2][0].toFixed(2)} {matrix3D[2][1].toFixed(2)} {matrix3D[2][2].toFixed(2)}]</div>
-            </div>
-          </div>
-          <div>
-            <h4 className="text-sm font-semibold text-gray-700 mb-1">Eigenvalues:</h4>
-            <div className="text-xs space-y-1">
-              {eigenvalues.map((eig, i) => (
-                <div key={i} className="flex items-center">
-                  <span 
-                    className="w-3 h-3 rounded-full mr-2"
-                    style={{ backgroundColor: `hsl(${200 + i * 80}, 80%, 40%)` }}
-                  ></span>
-                  <span>λ{i+1} = {eig.value.toFixed(3)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Modern Header */}
+      <ModernCanvasHeader 
+        title="3D Eigenvalue Analysis"
+        description={`Eigenvalue and eigenvector visualization • ${eigenvalues.length} eigenvalue${eigenvalues.length !== 1 ? 's' : ''} computed`}
+        variant="eigenvalue"
+      />
       
       <Canvas
         camera={{

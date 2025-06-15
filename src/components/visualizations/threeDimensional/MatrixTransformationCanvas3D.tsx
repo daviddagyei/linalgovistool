@@ -10,6 +10,7 @@ import { applyMatrix3D } from '../../../utils/mathUtils';
 import { ReactiveGridPlanes } from './ReactiveGrid';
 import { CameraController } from './CameraController';
 import { useResponsiveViewport } from '../../../hooks/useResponsiveUI';
+import ModernCanvasHeader from './ModernCanvasHeader';
 
 interface MatrixTransformationCanvas3DProps {
   width: number;
@@ -385,15 +386,12 @@ const MatrixTransformationCanvas3D: React.FC<MatrixTransformationCanvas3DProps> 
       className="matrix-transformation-canvas-3d bg-white rounded-lg shadow-lg overflow-hidden relative"
       style={{ width, height }}
     >
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-50 to-orange-50 p-4 border-b border-gray-200">
-        <h3 className="text-lg font-bold text-gray-800 mb-1">
-          3D Matrix Transformation Analysis
-        </h3>
-        <p className="text-sm text-gray-600">
-          Visualize how linear transformations affect vectors and unit shapes. Determinant: {determinant.toFixed(3)}
-        </p>
-      </div>
+      {/* Modern Header */}
+      <ModernCanvasHeader 
+        title="3D Matrix Transformation"
+        description={`Linear transformation visualization • Det: ${determinant.toFixed(3)} • ${Math.abs(determinant) > 1 ? 'Expansion' : 'Contraction'}`}
+        variant="matrix"
+      />
       
       <Canvas
         camera={{
