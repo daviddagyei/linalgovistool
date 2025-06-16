@@ -32,7 +32,7 @@ const VectorArrow: React.FC<{
   color: string;
   thickness?: number;
   dashed?: boolean;
-}> = ({ vector, color, thickness = 0.02, dashed = false }) => {
+}> = ({ vector, color, thickness = 0.012, dashed = false }) => {
   const start = new Vector3(0, 0, 0);
   const end = new Vector3(vector.x, vector.y, vector.z);
   const direction = end.clone().sub(start).normalize();
@@ -472,9 +472,9 @@ const MatrixTransformationCanvas3D: React.FC<MatrixTransformationCanvas3DProps> 
         {/* Coordinate axes */}
         {settings.showAxes && (
           <>
-            <VectorArrow vector={{ x: 3, y: 0, z: 0 }} color="#ff0000" thickness={0.02} />
-            <VectorArrow vector={{ x: 0, y: 3, z: 0 }} color="#00ff00" thickness={0.02} />
-            <VectorArrow vector={{ x: 0, y: 0, z: 3 }} color="#0000ff" thickness={0.02} />
+            <VectorArrow vector={{ x: 3, y: 0, z: 0 }} color="#ff0000" thickness={0.012} />
+            <VectorArrow vector={{ x: 0, y: 3, z: 0 }} color="#00ff00" thickness={0.012} />
+            <VectorArrow vector={{ x: 0, y: 0, z: 3 }} color="#0000ff" thickness={0.012} />
           </>
         )}
         
@@ -484,7 +484,7 @@ const MatrixTransformationCanvas3D: React.FC<MatrixTransformationCanvas3DProps> 
             key={`original-basis-${i}`}
             vector={vector}
             color={originalColor}
-            thickness={0.025}
+            thickness={0.015}
           />
         ))}
         
@@ -496,7 +496,7 @@ const MatrixTransformationCanvas3D: React.FC<MatrixTransformationCanvas3DProps> 
               key={`transformed-basis-${i}`}
               vector={transformed}
               color={transformedColor}
-              thickness={0.025}
+              thickness={0.015}
               dashed
             />
           );
@@ -530,12 +530,12 @@ const MatrixTransformationCanvas3D: React.FC<MatrixTransformationCanvas3DProps> 
               <VectorArrow
                 vector={vector}
                 color={vectorColor}
-                thickness={0.02}
+                thickness={0.012}
               />
               <VectorArrow
                 vector={transformed}
                 color={transformedVectorColor}
-                thickness={0.02}
+                thickness={0.012}
                 dashed
               />
             </group>

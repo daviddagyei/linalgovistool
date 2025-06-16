@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import { Canvas } from '@react-three/fiber';
 import { Vector3, Quaternion } from 'three';
@@ -8,6 +8,7 @@ import { calculateEigenvalues3D, applyMatrix3D } from '../../../utils/mathUtils'
 import { ReactiveGridPlanes } from './ReactiveGrid';
 import { CameraController } from './CameraController';
 import ModernCanvasHeader from './ModernCanvasHeader';
+import { VECTOR_COLORS, CameraProjector, VectorLabels } from './GlassmorphismVectorLabels';
 
 // Helper function to ensure 3D vector
 const ensureVector3D = (vector: Vector3D | Vector2D): Vector3D => {
@@ -254,6 +255,8 @@ const DraggableLegend: React.FC<{
 // Main Canvas component
 const EigenvalueCanvas3D: React.FC<EigenvalueCanvas3DProps> = ({ width, height }) => {
   const { matrix3D, settings } = useVisualizer();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [projectedPositions, setProjectedPositions] = useState<Array<{ x: number; y: number; visible: boolean; distance: number }>>([]);
   
   // Calculate eigenvalues and eigenvectors
   const eigenvalues = calculateEigenvalues3D(matrix3D);
@@ -266,6 +269,42 @@ const EigenvalueCanvas3D: React.FC<EigenvalueCanvas3DProps> = ({ width, height }
     { x: 1, y: 1, z: 1 }
   ];
 
+  // Prepare vectors for labels
+  const labelVectors = useMemo(() => {
+    const vectors: Array<{ vector: Vector3D; color: typeof VECTOR_COLORS[0]; label: string }> = [];
+    
+    // Add eigenvectors
+    eigenvalues.forEach((eig, i) => {
+      const eigenVector3D = ensureVector3D(eig.vector);
+      const colorIndex = i % VECTOR_COLORS.length;
+      const colorScheme = VECTOR_COLORS[colorIndex];
+      
+      vectors.push({
+        vector: eigenVector3D,
+        color: colorScheme,
+        label: `λ<sub>${i + 1}</sub>`,
+      });
+    });
+    
+    // Add test vectors
+    testVectors.forEach((vector, i) => {
+      const colorIndex = (eigenvalues.length + i) % VECTOR_COLORS.length;
+      const colorScheme = VECTOR_COLORS[colorIndex];
+      
+      vectors.push({
+        vector,
+        color: colorScheme,
+        label: `t<sub>${i + 1}</sub>`,
+      });
+    });
+    
+    return vectors;
+  }, [eigenvalues, testVectors]);
+
+  const handleProjectionsUpdate = (projections: Array<{ x: number; y: number; visible: boolean; distance: number }>) => {
+    setProjectedPositions(projections);
+  };
+
   // Combine all vectors for camera framing
   const allVectors: Vector3D[] = [
     ...eigenvalues.map(eig => ensureVector3D(eig.vector)),
@@ -274,6 +313,7 @@ const EigenvalueCanvas3D: React.FC<EigenvalueCanvas3DProps> = ({ width, height }
   
   return (
     <div 
+      ref={containerRef}
       className="eigenvalue-canvas-3d bg-white rounded-lg shadow-lg overflow-hidden relative"
       style={{ width, height }}
     >
@@ -362,6 +402,16 @@ const EigenvalueCanvas3D: React.FC<EigenvalueCanvas3DProps> = ({ width, height }
           );
         })}
         
+        {/* Camera Projector for Labels */}
+        {settings.showLabels && labelVectors.length > 0 && (
+          <CameraProjector
+            vectors={labelVectors}
+            onProjectionsUpdate={handleProjectionsUpdate}
+            width={width}
+            height={height - 60} // Account for header height
+          />
+        )}
+        
         {/* Camera Controller */}
         <CameraController
           vectors={allVectors}
@@ -369,6 +419,17 @@ const EigenvalueCanvas3D: React.FC<EigenvalueCanvas3DProps> = ({ width, height }
           enableAutoRotate={false}
         />
       </Canvas>
+      
+      {/* Glass-morphism Vector Labels */}
+      {settings.showLabels && labelVectors.length > 0 && (
+        <VectorLabels 
+          vectors={labelVectors}
+          projectedPositions={projectedPositions}
+          width={width}
+          height={height - 60} // Account for header height
+          containerRef={containerRef}
+        />
+      )}
       
       {/* Draggable Legend */}
       <DraggableLegend eigenvalues={eigenvalues} />
