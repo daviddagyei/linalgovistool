@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
 import { Vector3, Quaternion } from 'three';
@@ -7,14 +7,14 @@ import { Vector3D } from '../../../types';
 import { ReactiveGridPlanes } from './ReactiveGrid';
 import { CameraController } from './CameraController';
 import ModernCanvasHeader from './ModernCanvasHeader';
+import { VECTOR_COLORS, CameraProjector, VectorLabels } from './GlassmorphismVectorLabels';
 
 // Vector Arrow component
 const VectorArrow: React.FC<{
   vector: Vector3D;
   color: string;
-  label: string;
   thickness?: number;
-}> = ({ vector, color, label, thickness = 0.02 }) => {
+}> = ({ vector, color, thickness = 0.02 }) => {
   const start = new Vector3(0, 0, 0);
   const end = new Vector3(vector.x, vector.y, vector.z);
   const direction = end.clone().sub(start).normalize();
@@ -53,17 +53,6 @@ const VectorArrow: React.FC<{
         <coneGeometry args={[thickness * 3, thickness * 10, 8]} />
         <meshStandardMaterial color={color} />
       </mesh>
-      
-      {/* Label */}
-      <Text
-        position={end.clone().add(direction.multiplyScalar(0.3))}
-        fontSize={0.2}
-        color={color}
-        anchorX="left"
-        anchorY="middle"
-      >
-        {label}
-      </Text>
     </group>
   );
 };
@@ -121,11 +110,33 @@ const VectorCanvas3D: React.FC<{ width: number; height: number }> = ({ width, he
     settings
   } = useVisualizer();
 
+  const [projectedPositions, setProjectedPositions] = useState<Array<{ x: number; y: number; visible: boolean; distance: number }>>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
+
   // Vector colors
   const vectorColors = ['#3366FF', '#FF6633', '#33CC99', '#9966FF', '#FF9933'];
 
+  // Prepare vectors for labels
+  const labelVectors = useMemo(() => {
+    return vectors3D.map((vector, index) => {
+      const colorIndex = index % VECTOR_COLORS.length;
+      const colorScheme = VECTOR_COLORS[colorIndex];
+      
+      return {
+        vector,
+        color: colorScheme,
+        label: `v<sub>${index + 1}</sub>`,
+      };
+    });
+  }, [vectors3D]);
+
+  const handleProjectionsUpdate = (projections: Array<{ x: number; y: number; visible: boolean; distance: number }>) => {
+    setProjectedPositions(projections);
+  };
+
   return (
     <div 
+      ref={containerRef}
       className="vector-canvas-3d bg-white rounded-lg shadow-lg overflow-hidden relative"
       style={{ width, height }}
     >
@@ -184,9 +195,18 @@ const VectorCanvas3D: React.FC<{ width: number; height: number }> = ({ width, he
             key={index}
             vector={vector}
             color={vectorColors[index % vectorColors.length]}
-            label={`v${index + 1}(${vector.x.toFixed(1)}, ${vector.y.toFixed(1)}, ${vector.z.toFixed(1)})`}
           />
         ))}
+
+        {/* Camera Projector for Labels */}
+        {settings.showLabels && labelVectors.length > 0 && (
+          <CameraProjector
+            vectors={labelVectors}
+            onProjectionsUpdate={handleProjectionsUpdate}
+            width={width}
+            height={height - 60} // Account for header height
+          />
+        )}
         
         {/* Intelligent Camera Controller */}
         <CameraController
@@ -195,6 +215,17 @@ const VectorCanvas3D: React.FC<{ width: number; height: number }> = ({ width, he
           enableAutoRotate={false}
         />
       </Canvas>
+
+      {/* Glass-morphism Vector Labels */}
+      {settings.showLabels && labelVectors.length > 0 && (
+        <VectorLabels 
+          vectors={labelVectors}
+          projectedPositions={projectedPositions}
+          width={width}
+          height={height - 60} // Account for header height
+          containerRef={containerRef}
+        />
+      )}
     </div>
   );
 };

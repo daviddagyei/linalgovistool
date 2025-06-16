@@ -8,6 +8,7 @@ import { useVisualizer } from '../../../context/VisualizerContext';
 import { isLinearlyIndependent3D, magnitude3D, crossProduct, normalize3D } from '../../../utils/mathUtils';
 import { ReactiveGridPlanes } from './ReactiveGrid';
 import { CameraController } from './CameraController';
+import { VECTOR_COLORS, CameraProjector, VectorLabels } from './GlassmorphismVectorLabels';
 
 interface SubspaceCanvas3DProps {
   width: number;
@@ -18,11 +19,10 @@ interface SubspaceCanvas3DProps {
 const VectorArrow: React.FC<{
   vector: { x: number; y: number; z: number };
   color: string;
-  label?: string;
   thickness?: number;
   isActive?: boolean;
   showSpan?: boolean;
-}> = ({ vector, color, label, thickness = 0.02, isActive = false, showSpan = false }) => {
+}> = ({ vector, color, thickness = 0.02, isActive = false, showSpan = false }) => {
   const meshRef = useRef<Group>(null);
   
   useFrame((state) => {
@@ -84,19 +84,6 @@ const VectorArrow: React.FC<{
           emissiveIntensity={isActive ? 0.3 : 0}
         />
       </mesh>
-      
-      {/* Label */}
-      {label && (
-        <Text
-          position={end.clone().add(direction.multiplyScalar(0.4))}
-          fontSize={0.15}
-          color={color}
-          anchorX="center"
-          anchorY="middle"
-        >
-          {label}
-        </Text>
-      )}
     </group>
   );
 };
@@ -594,6 +581,8 @@ const DraggableLegend: React.FC<{
 const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) => {
   const { vectors3D, settings, subspaceSettings, updateSubspaceSettings } = useVisualizer();
   const [hoveredVector] = useState<number | null>(null);
+  const [projectedPositions, setProjectedPositions] = useState<Array<{ x: number; y: number; visible: boolean; distance: number }>>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Color scheme
   const colorScheme = {
@@ -620,6 +609,24 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
     updateSubspaceSettings({ showSpan: newShowSpan });
   };
 
+  // Prepare vectors for labels
+  const labelVectors = useMemo(() => {
+    return vectors3D.map((vector, index) => {
+      const colorIndex = index % VECTOR_COLORS.length;
+      const colorScheme = VECTOR_COLORS[colorIndex];
+      
+      return {
+        vector,
+        color: colorScheme,
+        label: `v<sub>${index + 1}</sub>`,
+      };
+    });
+  }, [vectors3D]);
+
+  const handleProjectionsUpdate = (projections: Array<{ x: number; y: number; visible: boolean; distance: number }>) => {
+    setProjectedPositions(projections);
+  };
+
   /*
   const handleFocusVector = (index: number) => {
     // Camera focusing will be handled by the CameraController component
@@ -629,6 +636,7 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
 
   return (
     <div 
+      ref={containerRef}
       className="subspace-canvas-3d bg-gradient-to-br from-gray-50 to-white rounded-xl shadow-xl overflow-hidden relative"
       style={{ width, height }}
     >
@@ -732,12 +740,21 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
             key={i}
             vector={vector}
             color={colorScheme.vectors[i % colorScheme.vectors.length].primary}
-            label={`v${i + 1}`}
             thickness={0.025}
             isActive={hoveredVector === i}
             showSpan={subspaceSettings.showSpan[i]}
           />
         ))}
+
+        {/* Camera Projector for Labels */}
+        {settings.showLabels && labelVectors.length > 0 && (
+          <CameraProjector
+            vectors={labelVectors}
+            onProjectionsUpdate={handleProjectionsUpdate}
+            width={width}
+            height={height - 60} // Account for header height
+          />
+        )}
         
         {/* Intelligent Camera Controller */}
         <CameraController
@@ -746,6 +763,17 @@ const SubspaceCanvas3D: React.FC<SubspaceCanvas3DProps> = ({ width, height }) =>
           enableAutoRotate={false}
         />
       </Canvas>
+
+      {/* Glass-morphism Vector Labels */}
+      {settings.showLabels && labelVectors.length > 0 && (
+        <VectorLabels 
+          vectors={labelVectors}
+          projectedPositions={projectedPositions}
+          width={width}
+          height={height - 60} // Account for header height
+          containerRef={containerRef}
+        />
+      )}
       
       {/* Enhanced Draggable Legend */}
       <DraggableLegend 

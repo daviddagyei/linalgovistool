@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
 import { Vector3, Quaternion } from 'three';
@@ -6,16 +6,15 @@ import { useVisualizer } from '../../../context/VisualizerContext';
 import { Vector3D } from '../../../types';
 import { ReactiveGridPlanes } from './ReactiveGrid';
 import { CameraController } from './CameraController';
-import ModernCanvasHeader from './ModernCanvasHeader';
+import { VECTOR_COLORS, CameraProjector, VectorLabels } from './GlassmorphismVectorLabels';
 
 // Vector Arrow component for basis vectors
 const BasisVectorArrow: React.FC<{
   vector: Vector3D;
   color: string;
-  label: string;
   thickness?: number;
   isCustomBasis?: boolean;
-}> = ({ vector, color, label, thickness = 0.025, isCustomBasis = false }) => {
+}> = ({ vector, color, thickness = 0.025, isCustomBasis = false }) => {
   const start = new Vector3(0, 0, 0);
   const end = new Vector3(vector.x, vector.y, vector.z);
   const length = end.length();
@@ -68,17 +67,6 @@ const BasisVectorArrow: React.FC<{
           emissiveIntensity={isCustomBasis ? 0.1 : 0}
         />
       </mesh>
-      
-      {/* Vector Label */}
-      <Text
-        position={end.clone().add(direction.clone().multiplyScalar(0.4))}
-        fontSize={0.25}
-        color={color}
-        anchorX="left"
-        anchorY="middle"
-      >
-        {label}
-      </Text>
     </group>
   );
 };
@@ -136,9 +124,11 @@ const BasisCanvas3D: React.FC<{ width: number; height: number }> = ({ width, hei
   const { 
     vectors3D, 
     settings,
-    basisSettings3D,
-    changeBasis3D
+    basisSettings3D
   } = useVisualizer();
+
+  const [projectedPositions, setProjectedPositions] = useState<Array<{ x: number; y: number; visible: boolean; distance: number }>>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Debug logging
   console.log('BasisCanvas3D - vectors3D:', vectors3D);
@@ -158,10 +148,46 @@ const BasisCanvas3D: React.FC<{ width: number; height: number }> = ({ width, hei
       { x: 0, y: 0, z: 1 }
     ];
 
+  // Prepare vectors for labels
+  const labelVectors = useMemo(() => {
+    const vectors: Array<{ vector: Vector3D; color: typeof VECTOR_COLORS[0]; label: string }> = [];
+    
+    // Add basis vectors
+    currentBasisVectors.forEach((vector, index) => {
+      const colorIndex = index % VECTOR_COLORS.length;
+      const colorScheme = VECTOR_COLORS[colorIndex];
+      
+      vectors.push({
+        vector,
+        color: colorScheme,
+        label: basisSettings3D.customBasis ? `e<sub>${index + 1}</sub>` : ['î', 'ĵ', 'k̂'][index],
+      });
+    });
+    
+    // Add user vectors
+    vectors3D.forEach((vector, index) => {
+      const colorIndex = (index + 3) % VECTOR_COLORS.length; // Offset to avoid color collision
+      const colorScheme = VECTOR_COLORS[colorIndex];
+      
+      vectors.push({
+        vector,
+        color: colorScheme,
+        label: `v<sub>${index + 1}</sub>`,
+      });
+    });
+    
+    return vectors;
+  }, [vectors3D, currentBasisVectors, basisSettings3D]);
+
+  const handleProjectionsUpdate = (projections: Array<{ x: number; y: number; visible: boolean; distance: number }>) => {
+    setProjectedPositions(projections);
+  };
+
   console.log('BasisCanvas3D - currentBasisVectors:', currentBasisVectors);
 
   return (
     <div 
+      ref={containerRef}
       className="basis-canvas-3d bg-white rounded-lg shadow-lg overflow-hidden relative"
       style={{ width, height }}
     >
@@ -227,31 +253,30 @@ const BasisCanvas3D: React.FC<{ width: number; height: number }> = ({ width, hei
             key={`basis-${index}`}
             vector={vector}
             color={basisColors[index % basisColors.length]}
-            label={basisSettings3D.customBasis ? `e${index + 1}` : ['î', 'ĵ', 'k̂'][index]}
             thickness={0.035}
             isCustomBasis={basisSettings3D.customBasis}
           />
         ))}
         
         {/* Original vectors expressed in the current basis */}
-        {vectors3D.map((vector, index) => {
-          const coords = basisSettings3D.customBasis ? 
-            changeBasis3D(vector) : 
-            vector;
+        {vectors3D.map((vector, index) => (
+          <BasisVectorArrow
+            key={`vector-${index}`}
+            vector={vector}
+            color={vectorColors[index % vectorColors.length]}
+            thickness={0.02}
+          />
+        ))}
 
-          return (
-            <BasisVectorArrow
-              key={`vector-${index}`}
-              vector={vector}
-              color={vectorColors[index % vectorColors.length]}
-              label={basisSettings3D.showCoordinates ? 
-                `v${index + 1}(${coords.x.toFixed(1)}, ${coords.y.toFixed(1)}, ${coords.z.toFixed(1)})` :
-                `v${index + 1}`
-              }
-              thickness={0.02}
-            />
-          );
-        })}
+        {/* Camera Projector for Labels */}
+        {settings.showLabels && labelVectors.length > 0 && (
+          <CameraProjector
+            vectors={labelVectors}
+            onProjectionsUpdate={handleProjectionsUpdate}
+            width={width}
+            height={height - 80} // Account for header height
+          />
+        )}
         
         {/* Camera Controller */}
         <CameraController
@@ -260,6 +285,17 @@ const BasisCanvas3D: React.FC<{ width: number; height: number }> = ({ width, hei
           enableAutoRotate={false}
         />
       </Canvas>
+
+      {/* Glass-morphism Vector Labels */}
+      {settings.showLabels && labelVectors.length > 0 && (
+        <VectorLabels 
+          vectors={labelVectors}
+          projectedPositions={projectedPositions}
+          width={width}
+          height={height - 80} // Account for header height
+          containerRef={containerRef}
+        />
+      )}
     </div>
   );
 };

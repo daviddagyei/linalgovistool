@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Line, Text } from '@react-three/drei';
+import { OrbitControls, Line } from '@react-three/drei';
 import { Vector3, Quaternion } from 'three';
 import * as THREE from 'three';
 import { useVisualizer } from '../../../context/VisualizerContext';
@@ -9,8 +9,8 @@ import { Vector3D, Matrix3D } from '../../../types';
 import { applyMatrix3D } from '../../../utils/mathUtils';
 import { ReactiveGridPlanes } from './ReactiveGrid';
 import { CameraController } from './CameraController';
-import { useResponsiveViewport } from '../../../hooks/useResponsiveUI';
 import ModernCanvasHeader from './ModernCanvasHeader';
+import { VECTOR_COLORS } from './GlassmorphismVectorLabels';
 
 interface MatrixTransformationCanvas3DProps {
   width: number;
@@ -32,8 +32,7 @@ const VectorArrow: React.FC<{
   color: string;
   thickness?: number;
   dashed?: boolean;
-  label?: string;
-}> = ({ vector, color, thickness = 0.02, dashed = false, label }) => {
+}> = ({ vector, color, thickness = 0.02, dashed = false }) => {
   const start = new Vector3(0, 0, 0);
   const end = new Vector3(vector.x, vector.y, vector.z);
   const direction = end.clone().sub(start).normalize();
@@ -79,19 +78,6 @@ const VectorArrow: React.FC<{
           transparent={dashed}
         />
       </mesh>
-      
-      {/* Label */}
-      {label && (
-        <Text
-          position={end.clone().add(direction.multiplyScalar(0.3))}
-          fontSize={0.15}
-          color={color}
-          anchorX="left"
-          anchorY="middle"
-        >
-          {label}
-        </Text>
-      )}
     </group>
   );
 };
@@ -184,7 +170,8 @@ const TransformableCube: React.FC<{
 const DraggableLegend: React.FC<{
   matrix: Matrix3D;
   determinant: number;
-}> = ({ matrix, determinant }) => {
+  vectors?: Array<{ original: Vector3D; transformed: Vector3D; color: typeof VECTOR_COLORS[0]; label: string }>;
+}> = ({ matrix, determinant, vectors = [] }) => {
   const [position, setPosition] = useState({ 
     x: window.innerWidth - 290, // Position from right edge (legend width + margin)
     y: 16 // Keep at top
@@ -331,10 +318,36 @@ const DraggableLegend: React.FC<{
             <div className="w-4 h-3 border border-blue-500 bg-blue-100 mr-2"></div>
             <span className="font-medium">Original Unit Cube</span>
           </div>
-          <div className="flex items-center">
+          <div className="flex items-center mb-1">
             <div className="w-4 h-3 border border-red-500 bg-red-100 mr-2"></div>
             <span className="font-medium">Transformed Cube</span>
           </div>
+          
+          {/* Vector Information */}
+          {vectors.length > 0 && (
+            <div className="mt-3 pt-2 border-t border-gray-200">
+              <h5 className="text-sm font-semibold text-gray-700 mb-2">Vectors:</h5>
+              {vectors.map((vectorData, index) => (
+                <div key={index} className="mb-2 text-xs">
+                  <div className="flex items-center mb-1">
+                    <div 
+                      className="w-3 h-3 rounded mr-2" 
+                      style={{ backgroundColor: vectorData.color.primary }}
+                    ></div>
+                    <span className="font-medium">{vectorData.label}</span>
+                  </div>
+                  <div className="ml-5 space-y-1">
+                    <div className="text-gray-600">
+                      Original: ({vectorData.original.x.toFixed(1)}, {vectorData.original.y.toFixed(1)}, {vectorData.original.z.toFixed(1)})
+                    </div>
+                    <div className="text-gray-600">
+                      Transformed: ({vectorData.transformed.x.toFixed(1)}, {vectorData.transformed.y.toFixed(1)}, {vectorData.transformed.z.toFixed(1)})
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
       
@@ -353,6 +366,7 @@ const DraggableLegend: React.FC<{
 // Main Canvas component
 const MatrixTransformationCanvas3D: React.FC<MatrixTransformationCanvas3DProps> = ({ width, height }) => {
   const { matrix3D, vectors3D, settings } = useVisualizer();
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   
   // Calculate determinant
   const determinant = calculateDeterminant3D(matrix3D);
@@ -379,7 +393,25 @@ const MatrixTransformationCanvas3D: React.FC<MatrixTransformationCanvas3DProps> 
   const originalColor = '#3366FF';
   const transformedColor = '#FF6633';
   
-  // Auto frame handler
+  // Prepare vectors for legend
+  const vectorsForLegend = useMemo(() => {
+    const vectors: Array<{ original: Vector3D; transformed: Vector3D; color: typeof VECTOR_COLORS[0]; label: string }> = [];
+    
+    vectors3D.forEach((vector, i) => {
+      const colorIndex = i % VECTOR_COLORS.length;
+      const colorScheme = VECTOR_COLORS[colorIndex];
+      const transformed = applyMatrix3D(matrix3D, vector);
+      
+      vectors.push({
+        original: vector,
+        transformed,
+        color: colorScheme,
+        label: `v${i + 1}`
+      });
+    });
+    
+    return vectors;
+  }, [vectors3D, matrix3D]);
   
   return (
     <div 
@@ -394,6 +426,7 @@ const MatrixTransformationCanvas3D: React.FC<MatrixTransformationCanvas3DProps> 
       />
       
       <Canvas
+        ref={canvasRef}
         camera={{
           position: [8, 6, 8],
           fov: 50,
@@ -439,9 +472,9 @@ const MatrixTransformationCanvas3D: React.FC<MatrixTransformationCanvas3DProps> 
         {/* Coordinate axes */}
         {settings.showAxes && (
           <>
-            <VectorArrow vector={{ x: 3, y: 0, z: 0 }} color="#ff0000" thickness={0.02} label="X" />
-            <VectorArrow vector={{ x: 0, y: 3, z: 0 }} color="#00ff00" thickness={0.02} label="Y" />
-            <VectorArrow vector={{ x: 0, y: 0, z: 3 }} color="#0000ff" thickness={0.02} label="Z" />
+            <VectorArrow vector={{ x: 3, y: 0, z: 0 }} color="#ff0000" thickness={0.02} />
+            <VectorArrow vector={{ x: 0, y: 3, z: 0 }} color="#00ff00" thickness={0.02} />
+            <VectorArrow vector={{ x: 0, y: 0, z: 3 }} color="#0000ff" thickness={0.02} />
           </>
         )}
         
@@ -452,7 +485,6 @@ const MatrixTransformationCanvas3D: React.FC<MatrixTransformationCanvas3DProps> 
             vector={vector}
             color={originalColor}
             thickness={0.025}
-            label={['î', 'ĵ', 'k̂'][i]}
           />
         ))}
         
@@ -466,7 +498,6 @@ const MatrixTransformationCanvas3D: React.FC<MatrixTransformationCanvas3DProps> 
               color={transformedColor}
               thickness={0.025}
               dashed
-              label={['T(î)', 'T(ĵ)', 'T(k̂)'][i]}
             />
           );
         })}
@@ -490,16 +521,20 @@ const MatrixTransformationCanvas3D: React.FC<MatrixTransformationCanvas3DProps> 
         {/* Additional vectors if any */}
         {vectors3D.map((vector, i) => {
           const transformed = applyMatrix3D(matrix3D, vector);
+          const colorIndex = i % VECTOR_COLORS.length;
+          const vectorColor = VECTOR_COLORS[colorIndex].primary;
+          const transformedVectorColor = VECTOR_COLORS[colorIndex].secondary; // Use secondary color instead of invalid hex
+          
           return (
             <group key={`vector-${i}`}>
               <VectorArrow
                 vector={vector}
-                color="#8B5CF6"
+                color={vectorColor}
                 thickness={0.02}
               />
               <VectorArrow
                 vector={transformed}
-                color="#A855F7"
+                color={transformedVectorColor}
                 thickness={0.02}
                 dashed
               />
@@ -514,6 +549,8 @@ const MatrixTransformationCanvas3D: React.FC<MatrixTransformationCanvas3DProps> 
           enableAutoRotate={false}
         />
         
+        {/* Camera Projector for Labels - REMOVED FOR LEGEND */}
+        
         {/* Backup OrbitControls for manual camera control */}
         <OrbitControls
           enablePan={true}
@@ -524,8 +561,14 @@ const MatrixTransformationCanvas3D: React.FC<MatrixTransformationCanvas3DProps> 
         />
       </Canvas>
       
+      {/* Vector Labels - REMOVED, now in legend */}
+      
       {/* Draggable Legend */}
-      <DraggableLegend matrix={matrix3D} determinant={determinant} />
+      <DraggableLegend 
+        matrix={matrix3D} 
+        determinant={determinant} 
+        vectors={vectorsForLegend}
+      />
     </div>
   );
 };
