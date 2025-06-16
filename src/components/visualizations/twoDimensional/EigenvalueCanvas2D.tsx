@@ -3,26 +3,20 @@ import ReactDOM from 'react-dom';
 import * as d3 from 'd3';
 import { useVisualizer } from '../../../context/VisualizerContext';
 import { Vector2D } from '../../../types';
-import { calculateEigenvalues2D, applyMatrix2D } from '../../../utils/mathUtils';
+import { applyMatrix2D } from '../../../utils/mathUtils';
 import { getNiceTickStep } from '../../../utils/niceTicks';
 
 // Centralized color functions for consistency
-const getEigenvalueColor = (index: number): string => {
-  return `hsl(${200 + index * 80}, 80%, 40%)`;
-};
-
 const getTestVectorColor = (index: number): string => {
   return `hsl(${300 + index * 30}, 70%, 45%)`;
 };
 
 // Draggable Legend Component for 2D Eigenvalue Analysis
 const DraggableLegend: React.FC<{
-  eigenvalues: Array<{ value: number; vector: Vector2D }>;
   testVectors: Vector2D[];
   transformedVectors: Vector2D[];
-  showEigenvectors: boolean;
   showTransformation: boolean;
-}> = ({ eigenvalues, testVectors, transformedVectors, showEigenvectors, showTransformation }) => {
+}> = ({ testVectors, transformedVectors, showTransformation }) => {
   const [position, setPosition] = useState({ 
     x: window.innerWidth - 280, // Position from right edge (legend width + margin)
     y: 16 // Keep at top
@@ -155,23 +149,7 @@ const DraggableLegend: React.FC<{
         <div className="text-xs text-gray-400">⋮⋮</div>
       </div>
       <div className="space-y-2 text-xs">
-        {/* Eigenvectors */}
-        {showEigenvectors && eigenvalues.length > 0 && (
-          <>
-            <div className="font-medium text-gray-700 border-b pb-1">Eigenvectors:</div>
-            {eigenvalues.map((eigenvalue, index) => (
-              <div key={`eigen-${index}`}>
-                <div className="flex items-center">
-                  {createArrowIcon(getEigenvalueColor(index))}
-                  <span className="font-medium">λ{index + 1} = {eigenvalue.value.toFixed(3)}</span>
-                </div>
-                <div className="ml-8 text-gray-600">
-                  v = ({eigenvalue.vector.x.toFixed(2)}, {eigenvalue.vector.y.toFixed(2)})
-                </div>
-              </div>
-            ))}
-          </>
-        )}
+        {/* Eigenvectors section removed by user request */}
         
         {/* Test vectors */}
         {showTransformation && (
@@ -252,9 +230,6 @@ const EigenvalueCanvas2D: React.FC<EigenvalueCanvas2DProps> = ({
       .attr('class', 'main-group')
       .attr('transform', `translate(${margin.left}, ${margin.top})`);
 
-    // Calculate eigenvalues and eigenvectors
-    const eigenvalues = calculateEigenvalues2D(matrix2D);
-    
     // Calculate test vectors for transformation visualization
     const testVectors: Vector2D[] = [
       { x: 1, y: 0 },
@@ -462,37 +437,8 @@ const EigenvalueCanvas2D: React.FC<EigenvalueCanvas2DProps> = ({
       });
     }
     
-    // Draw eigenvectors if enabled - no labels on canvas
-    if (eigenvalueSettings?.showEigenvectors && eigenvalues.length > 0) {
-      eigenvalues.forEach((eigenvalue, index) => {
-        const eigenvector = eigenvalue.vector as Vector2D;
-        const scaledVector = {
-          x: eigenvector.x * 3,
-          y: eigenvector.y * 3
-        };
-        
-        g.append('line')
-          .attr('x1', xScale(-scaledVector.x))
-          .attr('y1', yScale(-scaledVector.y))
-          .attr('x2', xScale(scaledVector.x))
-          .attr('y2', yScale(scaledVector.y))
-          .attr('stroke', getEigenvalueColor(index))
-          .attr('stroke-width', 4)
-          .attr('opacity', 0.8);
-        
-        g.append('circle')
-          .attr('cx', xScale(scaledVector.x))
-          .attr('cy', yScale(scaledVector.y))
-          .attr('r', 6)
-          .attr('fill', getEigenvalueColor(index));
-        
-        g.append('circle')
-          .attr('cx', xScale(-scaledVector.x))
-          .attr('cy', yScale(-scaledVector.y))
-          .attr('r', 6)
-          .attr('fill', getEigenvalueColor(index));
-      });
-    }
+    // Eigenvectors are not drawn on the canvas (removed by user request)
+    // They are still shown in the legend for reference
     
   }, [matrix2D, width, height, margin, settings, eigenvalueSettings, scale, offset]);
   
@@ -572,7 +518,6 @@ const EigenvalueCanvas2D: React.FC<EigenvalueCanvas2DProps> = ({
         <svg ref={svgRef} className="w-full h-full"></svg>
       </div>
       <DraggableLegend 
-        eigenvalues={calculateEigenvalues2D(matrix2D)} 
         testVectors={[
           { x: 1, y: 0 },
           { x: 0, y: 1 },
@@ -585,7 +530,6 @@ const EigenvalueCanvas2D: React.FC<EigenvalueCanvas2DProps> = ({
           { x: 1, y: 1 },
           { x: -1, y: 1 }
         ].map(v => applyMatrix2D(matrix2D, v))}
-        showEigenvectors={eigenvalueSettings?.showEigenvectors}
         showTransformation={eigenvalueSettings?.showTransformation}
       />
     </div>

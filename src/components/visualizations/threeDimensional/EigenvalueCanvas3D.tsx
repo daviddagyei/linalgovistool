@@ -3,20 +3,12 @@ import ReactDOM from 'react-dom';
 import { Canvas } from '@react-three/fiber';
 import { Vector3, Quaternion } from 'three';
 import { useVisualizer } from '../../../context/VisualizerContext';
-import { Vector3D, Vector2D } from '../../../types';
-import { calculateEigenvalues3D, applyMatrix3D } from '../../../utils/mathUtils';
+import { Vector3D } from '../../../types';
+import { applyMatrix3D } from '../../../utils/mathUtils';
 import { ReactiveGridPlanes } from './ReactiveGrid';
 import { CameraController } from './CameraController';
 import ModernCanvasHeader from './ModernCanvasHeader';
 import { VECTOR_COLORS, CameraProjector, VectorLabels } from './GlassmorphismVectorLabels';
-
-// Helper function to ensure 3D vector
-const ensureVector3D = (vector: Vector3D | Vector2D): Vector3D => {
-  if ('z' in vector) {
-    return vector as Vector3D;
-  }
-  return { ...vector, z: 0 } as Vector3D;
-};
 
 interface EigenvalueCanvas3DProps {
   width: number;
@@ -80,9 +72,7 @@ const VectorArrow: React.FC<{
 };
 
 // Draggable Legend Component
-const DraggableLegend: React.FC<{
-  eigenvalues: Array<{ value: number; vector: Vector3D | Vector2D }>;
-}> = ({ eigenvalues }) => {
+const DraggableLegend: React.FC<{}> = () => {
   const [position, setPosition] = useState({ 
     x: window.innerWidth - 280, // Position from right edge (legend width + margin)
     y: 16 // Keep at top
@@ -210,24 +200,10 @@ const DraggableLegend: React.FC<{
         <div className="text-xs text-gray-400">⋮⋮</div>
       </div>
       <div className="space-y-2 text-xs">
-        {/* Eigenvectors */}
-        {eigenvalues.map((eig, i) => (
-          <div key={`eigen-${i}`}>
-            <div className="flex items-center">
-              {createArrowIcon(`hsl(${200 + i * 80}, 80%, 40%)`)}
-              <span className="font-medium">Eigenvector {i + 1}:</span>
-              <span className="text-gray-600 ml-1">λ = {eig.value.toFixed(3)}</span>
-            </div>
-            <div className="flex items-center ml-2">
-              {createArrowIcon(`hsl(${200 + i * 80}, 80%, 40%)`, true)}
-              <span className="text-gray-600">Transformed (λ × v)</span>
-            </div>
-          </div>
-        ))}
+        {/* Eigenvectors section removed by user request */}
         
         {/* Test vectors */}
-        <div className="pt-2 border-t border-gray-200">
-          {['e₁ (x-axis)', 'e₂ (y-axis)', 'e₃ (z-axis)', 'unit diagonal'].map((label, i) => (
+        <div className="pt-2 border-t border-gray-200">{['e₁ (x-axis)', 'e₂ (y-axis)', 'e₃ (z-axis)', 'unit diagonal'].map((label, i) => (
             <div key={`test-${i}`}>
               <div className="flex items-center">
                 {createArrowIcon(`hsl(${300 + i * 30}, 70%, 45%)`)}
@@ -258,9 +234,6 @@ const EigenvalueCanvas3D: React.FC<EigenvalueCanvas3DProps> = ({ width, height }
   const containerRef = useRef<HTMLDivElement>(null);
   const [projectedPositions, setProjectedPositions] = useState<Array<{ x: number; y: number; visible: boolean; distance: number }>>([]);
   
-  // Calculate eigenvalues and eigenvectors
-  const eigenvalues = calculateEigenvalues3D(matrix3D);
-  
   // Test vectors
   const testVectors: Vector3D[] = [
     { x: 1, y: 0, z: 0 },
@@ -273,22 +246,11 @@ const EigenvalueCanvas3D: React.FC<EigenvalueCanvas3DProps> = ({ width, height }
   const labelVectors = useMemo(() => {
     const vectors: Array<{ vector: Vector3D; color: typeof VECTOR_COLORS[0]; label: string }> = [];
     
-    // Add eigenvectors
-    eigenvalues.forEach((eig, i) => {
-      const eigenVector3D = ensureVector3D(eig.vector);
-      const colorIndex = i % VECTOR_COLORS.length;
-      const colorScheme = VECTOR_COLORS[colorIndex];
-      
-      vectors.push({
-        vector: eigenVector3D,
-        color: colorScheme,
-        label: `λ<sub>${i + 1}</sub>`,
-      });
-    });
+    // Eigenvectors removed by user request
     
     // Add test vectors
     testVectors.forEach((vector, i) => {
-      const colorIndex = (eigenvalues.length + i) % VECTOR_COLORS.length;
+      const colorIndex = i % VECTOR_COLORS.length;
       const colorScheme = VECTOR_COLORS[colorIndex];
       
       vectors.push({
@@ -299,15 +261,14 @@ const EigenvalueCanvas3D: React.FC<EigenvalueCanvas3DProps> = ({ width, height }
     });
     
     return vectors;
-  }, [eigenvalues, testVectors]);
+  }, [testVectors]);
 
   const handleProjectionsUpdate = (projections: Array<{ x: number; y: number; visible: boolean; distance: number }>) => {
     setProjectedPositions(projections);
   };
 
-  // Combine all vectors for camera framing
+  // Combine all vectors for camera framing (just test vectors now)
   const allVectors: Vector3D[] = [
-    ...eigenvalues.map(eig => ensureVector3D(eig.vector)),
     ...testVectors
   ];
   
@@ -320,7 +281,7 @@ const EigenvalueCanvas3D: React.FC<EigenvalueCanvas3DProps> = ({ width, height }
       {/* Modern Header */}
       <ModernCanvasHeader 
         title="3D Eigenvalue Analysis"
-        description={`Eigenvalue and eigenvector visualization • ${eigenvalues.length} eigenvalue${eigenvalues.length !== 1 ? 's' : ''} computed`}
+        description={`3D matrix transformation visualization • Test vectors and their transformations`}
         variant="eigenvalue"
       />
       
@@ -360,26 +321,7 @@ const EigenvalueCanvas3D: React.FC<EigenvalueCanvas3DProps> = ({ width, height }
           />
         )}
         
-        {/* Eigenvectors */}
-        {eigenvalues.map((eig, i) => {
-          const eigenVector3D = ensureVector3D(eig.vector);
-          const transformed = applyMatrix3D(matrix3D, eigenVector3D);
-          return (
-            <group key={i}>
-              <VectorArrow
-                vector={eigenVector3D}
-                color={`hsl(${200 + i * 80}, 80%, 40%)`}
-                thickness={0.03}
-              />
-              <VectorArrow
-                vector={transformed}
-                color={`hsl(${200 + i * 80}, 80%, 40%)`}
-                thickness={0.03}
-                dashed
-              />
-            </group>
-          );
-        })}
+        {/* Eigenvectors removed by user request */}
         
         {/* Test vectors */}
         {testVectors.map((vector, i) => {
@@ -432,7 +374,7 @@ const EigenvalueCanvas3D: React.FC<EigenvalueCanvas3DProps> = ({ width, height }
       )}
       
       {/* Draggable Legend */}
-      <DraggableLegend eigenvalues={eigenvalues} />
+      <DraggableLegend />
     </div>
   );
 };
