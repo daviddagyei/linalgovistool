@@ -499,8 +499,9 @@ const EigenvalueCanvas2D: React.FC<EigenvalueCanvas2DProps> = ({
   // Pan and zoom handlers
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef<{ x: number; y: number; offset: { x: number; y: number } } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   
-  const handleWheel = (e: React.WheelEvent) => {
+  const handleWheelNative = (e: WheelEvent) => {
     e.preventDefault();
     const rect = svgRef.current?.getBoundingClientRect();
     if (!rect) return;
@@ -521,6 +522,18 @@ const EigenvalueCanvas2D: React.FC<EigenvalueCanvas2DProps> = ({
     onScaleChange(newScale);
     onPanChange(newOffset);
   };
+  
+  // Handle wheel events with non-passive listener for zoom functionality
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    
+    container.addEventListener('wheel', handleWheelNative, { passive: false });
+    
+    return () => {
+      container.removeEventListener('wheel', handleWheelNative);
+    };
+  }, [scale, offset, innerWidth, innerHeight, onScaleChange, onPanChange]);
   
   const handleMouseDown = (e: React.MouseEvent) => {
     setDragging(true);
@@ -548,9 +561,9 @@ const EigenvalueCanvas2D: React.FC<EigenvalueCanvas2DProps> = ({
   return (
     <div className="eigenvalue-canvas-2d bg-white rounded-lg shadow-lg">
       <div
+        ref={containerRef}
         className="w-full h-full"
         style={{ cursor: dragging ? 'grabbing' : 'grab' }}
-        onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
